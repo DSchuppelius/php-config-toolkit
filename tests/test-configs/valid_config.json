@@ -1,0 +1,55 @@
+{
+    "Common":[
+        {
+			"key": "timezone",
+			"value": "Europe/Berlin",
+			"type": "text",
+			"description": "",
+			"enabled": true
+        }
+    ],
+    "Logger": [
+		{
+			"key": "logFile",
+			"value": "log.txt",
+			"type": "text",
+			"description": "",
+			"enabled": true
+		},
+		{
+			"key": "logLevel",
+			"value": "debug",
+			"description": "",
+			"enabled": true
+		},
+		{
+			"key": "maxFileSize",
+			"value": "5242880",
+			"description": "",
+			"enabled": true
+		}
+	],
+    "Archive": [
+		{
+			"key": "enabled",
+			"value": "true",
+			"type": "bool",
+			"description": "",
+			"enabled": true
+		},
+        {
+			"key": "path",
+			"value": "log/archive",
+			"type": "text",
+			"description": "",
+			"enabled": true
+		},
+		{
+			"key": "maxArchivedFiles",
+			"value": 10,
+			"type": "number",
+			"description": "",
+			"enabled": true
+		}
+    ]
+}

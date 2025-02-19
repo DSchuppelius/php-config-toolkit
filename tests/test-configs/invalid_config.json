@@ -1,0 +1,20 @@
+{
+    "Common":[
+        {
+			"type": "text",
+			"description": "",
+			"enabled": true
+        }
+    ],
+    "Logger": [
+		{
+			"key": "logFile",
+			"description": "",
+			"enabled": true
+		},
+		{
+			"key": "logLevel",
+			"value": "debug"
+		}
+	]
+}
