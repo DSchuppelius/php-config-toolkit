@@ -19,11 +19,19 @@
 		{
 			"key": "logLevel",
 			"value": "debug",
+			"type": "text",
 			"description": "",
 			"enabled": true
 		},
 		{
 			"key": "maxFileSize",
+			"value": "5242880",
+			"type": "number",
+			"description": "",
+			"enabled": true
+		},
+		{
+			"key": "maxTestFileSize",
 			"value": "5242880",
 			"description": "",
 			"enabled": true

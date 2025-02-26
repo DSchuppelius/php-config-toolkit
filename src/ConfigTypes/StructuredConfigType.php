@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace ConfigToolkit\ConfigTypes;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
+use Exception;
 
 class StructuredConfigType extends ConfigTypeAbstract {
     public function parse(array $data): array {
         $parsed = [];
         foreach ($data as $section => $items) {
             foreach ($items as $item) {
-                if (!isset($item['enabled']) || $item['enabled'] !== true) {
+                if (isset($item['enabled']) && $item['enabled'] !== true) {
                     continue;
                 }
 
@@ -19,8 +20,10 @@ class StructuredConfigType extends ConfigTypeAbstract {
                 $value = $item['value'] ?? null;
                 $type = $item['type'] ?? 'text';
 
-                if ($key) {
+                if (!is_null($key)) {
                     $parsed[$section][$key] = $this->castValue($value, $type);
+                } else {
+                    throw new Exception("Fehlender 'key' in '{$section}'.");
                 }
             }
         }

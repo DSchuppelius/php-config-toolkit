@@ -12,61 +12,110 @@ use ReflectionClass;
 class ConfigLoader {
     private static ?self $instance = null;
     protected array $config = [];
-    protected string $filePath;
+    protected array $filePaths = [];
     protected ?ConfigTypeInterface $configType = null;
     protected static array $configTypeClasses = [];
+    protected static string $configTypesDirectory = __DIR__ . '/ConfigTypes';
+    protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
 
-    private function __construct(string $filePath) {
-        $this->filePath = $filePath;
+    private function __construct() {
+        openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
         $this->loadAvailableConfigTypes();
-        $this->loadConfig();
     }
 
     /**
-     * Singleton-Pattern mit definiertem `filePath`
+     * Singleton-Pattern, ohne sofortige Konfigurationsdatei
      */
-    public static function getInstance(string $filePath = null): static {
+    public static function getInstance(): static {
         if (self::$instance === null) {
-            $defaultPath = $filePath ?: __DIR__ . '/../config/config.json';
-            self::$instance = new static($defaultPath);
+            self::$instance = new static();
         }
         return self::$instance;
     }
 
     /**
-     * Lädt die Konfigurationsdatei und identifiziert den Typ
+     * Lädt eine einzelne Konfigurationsdatei
      */
-    protected function loadConfig(): void {
-        if (!file_exists($this->filePath)) {
-            throw new Exception("Konfigurationsdatei nicht gefunden: {$this->filePath}");
+    public function loadConfigFile(string $filePath, bool $throwException = false): void {
+        if (!file_exists($filePath)) {
+            syslog(LOG_WARNING, "Konfigurationsdatei nicht gefunden: {$filePath}");
+            throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
         }
 
-        $jsonContent = file_get_contents($this->filePath);
+        $jsonContent = file_get_contents($filePath);
         $data = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
+            syslog(LOG_ERR, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
         }
 
-        $this->configType = $this->detectConfigType($data);
-        $this->config = $this->configType->parse($data);
+        try {
+            $this->configType = $this->detectConfigType($data);
+            $parsedConfig = $this->configType->parse($data);
+
+            // Merge der Konfiguration, spätere Dateien überschreiben frühere
+            $this->config = array_replace_recursive($this->config, $parsedConfig);
+            syslog(LOG_INFO, "Konfigurationsdatei geladen: $filePath");
+        } catch (Exception $e) {
+            syslog(LOG_ERR, "Fehler beim Laden der Konfigurationsdatei $filePath: " . $e->getMessage());
+            if ($throwException) {
+                throw $e;
+            }
+        }
     }
 
     /**
-     * Sucht automatisch alle Klassen im Namespace `ConfigToolkit\ConfigTypes` und registriert sie.
+     * Lädt mehrere Konfigurationsdateien auf einmal
+     */
+    public function loadConfigFiles(array $filePaths): void {
+        foreach ($filePaths as $filePath) {
+            $this->loadConfigFile($filePath);
+        }
+    }
+
+    /**
+     * Dynamisches Laden der Konfigurationsklassen aus dem `configTypes`-Verzeichnis
      */
     protected function loadAvailableConfigTypes(): void {
         if (!empty(self::$configTypeClasses)) {
             return; // Falls bereits geladen, nicht erneut scannen
         }
 
-        foreach (get_declared_classes() as $class) {
-            if (str_starts_with($class, 'ConfigToolkit\\ConfigTypes\\') && is_subclass_of($class, ConfigTypeAbstract::class)) {
-                self::$configTypeClasses[] = $class;
+        $configTypesDir = realpath(self::$configTypesDirectory);
+
+        if ($configTypesDir === false) {
+            throw new Exception("Das Verzeichnis für Konfigurationstypen konnte nicht aufgelöst werden: " . self::$configTypesDirectory);
+        }
+
+        $files = scandir($configTypesDir);
+        foreach ($files as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) !== 'php') {
+                continue;
+            }
+
+            $className = self::$configTypesNamespace . '\\' . pathinfo($file, PATHINFO_FILENAME);
+
+            if (class_exists($className)) {
+                $reflectionClass = new ReflectionClass($className);
+
+                if (
+                    $reflectionClass->isInstantiable()
+                    && $reflectionClass->implementsInterface(ConfigTypeInterface::class)
+                    && !$reflectionClass->isAbstract()
+                ) {
+                    self::$configTypeClasses[] = $className;
+                    syslog(LOG_INFO, "ConfigType geladen: $className");
+                } else {
+                    syslog(LOG_WARNING, "ConfigType übersprungen: $className (nicht instanziierbar oder ungültig)");
+                }
+            } else {
+                syslog(LOG_WARNING, "Klasse existiert nicht oder konnte nicht geladen werden: $className");
             }
         }
 
         if (empty(self::$configTypeClasses)) {
+            syslog(LOG_ERR, "Keine gültigen Konfigurationstypen gefunden.");
             throw new Exception("Keine gültigen Konfigurationstypen gefunden.");
         }
     }
@@ -76,17 +125,13 @@ class ConfigLoader {
      */
     protected function detectConfigType(array $data): ConfigTypeAbstract {
         foreach (self::$configTypeClasses as $class) {
-            $reflection = new ReflectionClass($class);
-
-            if (!$reflection->isAbstract() && $reflection->implementsInterface(ConfigTypeInterface::class)) {
-                $instance = $reflection->newInstance();
-                if ($instance->matches($data)) {
-                    return $instance;
-                }
+            $instance = new $class();
+            if ($instance->matches($data)) {
+                return $instance;
             }
         }
-
-        throw new Exception("Unbekannter Konfigurationstyp in Datei: {$this->filePath}");
+        syslog(LOG_WARNING, "Unbekannter Konfigurationstyp in der aktuellen Datei");
+        throw new Exception("Unbekannter Konfigurationstyp in der aktuellen Datei");
     }
 
     /**
@@ -97,9 +142,14 @@ class ConfigLoader {
     }
 
     /**
-     * Lädt die Konfigurationsdatei erneut
+     * Lädt alle Konfigurationsdateien erneut
      */
     public function reload(): void {
-        $this->loadConfig();
+        $this->config = [];
+        $this->loadConfigFiles($this->filePaths);
+    }
+
+    public static function resetInstance(): void {
+        self::$instance = null;
     }
 }
