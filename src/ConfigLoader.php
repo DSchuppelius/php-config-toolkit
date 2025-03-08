@@ -7,10 +7,15 @@ namespace ConfigToolkit;
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
 use Exception;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 use ReflectionClass;
 
 class ConfigLoader {
     private static ?self $instance = null;
+
+    private ?LoggerInterface $logger = null;
+
     protected array $config = [];
     protected array $filePaths = [];
     protected ?ConfigTypeInterface $configType = null;
@@ -18,9 +23,45 @@ class ConfigLoader {
     protected static string $configTypesDirectory = __DIR__ . '/ConfigTypes';
     protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
 
+    private static array $logLevelMap = [
+        LogLevel::EMERGENCY => LOG_EMERG,
+        LogLevel::ALERT     => LOG_ALERT,
+        LogLevel::CRITICAL  => LOG_CRIT,
+        LogLevel::ERROR     => LOG_ERR,
+        LogLevel::WARNING   => LOG_WARNING,
+        LogLevel::NOTICE    => LOG_NOTICE,
+        LogLevel::INFO      => LOG_INFO,
+        LogLevel::DEBUG     => LOG_DEBUG,
+    ];
+
     private function __construct() {
-        openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
+        if (function_exists('openlog')) {
+            if (defined('LOG_LOCAL0')) {
+                openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
+            } else {
+                openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_USER);
+            }
+        }
         $this->loadAvailableConfigTypes();
+    }
+
+    /**
+     * Logging-Funktion mit PSR-3 Kompatibilität
+     */
+    private function logMessage(string $level, string $message): void {
+        if ($this->logger) {
+            $this->logger->log($level, $message);
+        } else {
+            $syslogLevel = self::$logLevelMap[$level] ?? LOG_INFO;
+
+            if (function_exists('syslog')) {
+                syslog($syslogLevel, $message);
+            } else {
+                $tempDir = sys_get_temp_dir();
+                $logFile = $tempDir . DIRECTORY_SEPARATOR . "php-config-toolkit.log";
+                file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] [$level] $message" . PHP_EOL, FILE_APPEND);
+            }
+        }
     }
 
     /**
@@ -33,12 +74,16 @@ class ConfigLoader {
         return self::$instance;
     }
 
+    public function setLogger(LoggerInterface $logger): void {
+        $this->logger = $logger;
+    }
+
     /**
      * Lädt eine einzelne Konfigurationsdatei
      */
     public function loadConfigFile(string $filePath, bool $throwException = false): void {
         if (!file_exists($filePath)) {
-            syslog(LOG_WARNING, "Konfigurationsdatei nicht gefunden: {$filePath}");
+            $this->logMessage(Loglevel::WARNING, "Konfigurationsdatei nicht gefunden: {$filePath}");
             throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
         }
 
@@ -46,7 +91,7 @@ class ConfigLoader {
         $data = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            syslog(LOG_ERR, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
+            $this->logMessage(LogLevel::ERROR, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
         }
 
@@ -56,9 +101,9 @@ class ConfigLoader {
 
             // Merge der Konfiguration, spätere Dateien überschreiben frühere
             $this->config = array_replace_recursive($this->config, $parsedConfig);
-            syslog(LOG_INFO, "Konfigurationsdatei geladen: $filePath");
+            $this->logMessage(LogLevel::INFO, "Konfigurationsdatei geladen: $filePath");
         } catch (Exception $e) {
-            syslog(LOG_ERR, "Fehler beim Laden der Konfigurationsdatei $filePath: " . $e->getMessage());
+            $this->logMessage(LogLevel::ERROR, "Fehler beim Laden der Konfigurationsdatei $filePath: " . $e->getMessage());
             if ($throwException) {
                 throw $e;
             }
@@ -105,17 +150,17 @@ class ConfigLoader {
                     && !$reflectionClass->isAbstract()
                 ) {
                     self::$configTypeClasses[] = $className;
-                    syslog(LOG_INFO, "ConfigType geladen: $className");
+                    $this->logMessage(LogLevel::INFO, "ConfigType geladen: $className");
                 } else {
-                    syslog(LOG_WARNING, "ConfigType übersprungen: $className (nicht instanziierbar oder ungültig)");
+                    $this->logMessage(Loglevel::WARNING, "ConfigType übersprungen: $className (nicht instanziierbar oder ungültig)");
                 }
             } else {
-                syslog(LOG_WARNING, "Klasse existiert nicht oder konnte nicht geladen werden: $className");
+                $this->logMessage(Loglevel::WARNING, "Klasse existiert nicht oder konnte nicht geladen werden: $className");
             }
         }
 
         if (empty(self::$configTypeClasses)) {
-            syslog(LOG_ERR, "Keine gültigen Konfigurationstypen gefunden.");
+            $this->logMessage(LogLevel::ERROR, "Keine gültigen Konfigurationstypen gefunden.");
             throw new Exception("Keine gültigen Konfigurationstypen gefunden.");
         }
     }
@@ -130,7 +175,7 @@ class ConfigLoader {
                 return $instance;
             }
         }
-        syslog(LOG_WARNING, "Unbekannter Konfigurationstyp in der aktuellen Datei");
+        $this->logMessage(Loglevel::ERROR, "Unbekannter Konfigurationstyp in der aktuellen Datei");
         throw new Exception("Unbekannter Konfigurationstyp in der aktuellen Datei");
     }
 
