@@ -1,4 +1,12 @@
 <?php
+/*
+ * Created on   : Wed Feb 19 2025
+ * Author       : Daniel Jörg Schuppelius
+ * Author Uri   : https://schuppelius.org
+ * Filename     : ExecutableConfigType.php
+ * License      : MIT License
+ * License Uri  : https://opensource.org/license/mit
+ */
 
 declare(strict_types=1);
 

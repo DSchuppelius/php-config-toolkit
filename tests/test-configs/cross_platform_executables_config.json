@@ -1,0 +1,42 @@
+{
+    "shellExecutables": {
+        "mutt": {
+            "linuxPath": "/usr/bin/mutt",
+            "windowsPath": "C:\\Program Files\\Mutt\\mutt.exe",
+            "required": true,
+            "description": "Mail User Agent",
+            "arguments": ["-s", "'[subject]'"],
+            "windowsArguments": ["/s", "'[subject]'"],
+            "linuxArguments": ["-s", "'[subject]'"],
+            "debugArguments": ["-s", "'[subject]'"],
+            "windowsDebugArguments": ["/s", "'[subject]'", "/debug"],
+            "linuxDebugArguments": ["-s", "'[subject]'", "--debug"]
+        },
+        "java": {
+            "linuxPath": "/usr/bin/java",
+            "windowsPath": "C:\\Program Files\\Java\\bin\\java.exe",
+            "required": false,
+            "description": "Java Runtime Environment",
+            "arguments": ["-jar"],
+            "windowsArguments": ["-jar", "-Xmx512m"],
+            "linuxArguments": ["-jar", "-Xms256m"],
+            "debugArguments": ["-jar"],
+            "windowsDebugArguments": ["-jar", "-Xdebug"],
+            "linuxDebugArguments": ["-jar", "-Xverbose"]
+        }
+    },
+    "javaExecutables": {
+        "pdfbox": {
+            "linuxPath": "/usr/local/bin/pdfbox-app-3.0.0-alpha2.jar",
+            "windowsPath": "C:\\Tools\\pdfbox-app-3.0.0-alpha2.jar",
+            "required": true,
+            "description": "PDFBox",
+            "arguments": ["ExtractText"],
+            "windowsArguments": ["ExtractText", "--windows-flag"],
+            "linuxArguments": ["ExtractText", "--linux-flag"],
+            "debugArguments": ["ExtractText"],
+            "windowsDebugArguments": ["ExtractText", "--debug-windows"],
+            "linuxDebugArguments": ["ExtractText", "--debug-linux"]
+        }
+    }
+}
