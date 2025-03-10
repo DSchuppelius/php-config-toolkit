@@ -75,4 +75,24 @@ class ConfigLoaderTest extends TestCase {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile(__DIR__ . '/test-configs/non_existent.json');
     }
+
+    public function testGetWithReplaceParams(): void {
+        $config = ConfigLoader::getInstance();
+        $config->loadConfigFile($this->crossPlatformExecutablesConfigPath);
+
+        $params = [
+            "[INPUT]"  => "/tmp/input.jpg",
+            "[OUTPUT]" => "/tmp/output.png"
+        ];
+
+        $convertedCommand = $config->getWithReplaceParams("shellExecutables", "editor", $params);
+
+        $this->assertNotNull($convertedCommand);
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->assertSame('C:\Windows\System32\notepad.exe', $convertedCommand['path']);
+        } else {
+            $this->assertSame('/usr/bin/vi', $convertedCommand['path']);
+        }
+        $this->assertSame(["'/tmp/input.jpg'", "/tmp/output.png"], $convertedCommand["arguments"]);
+    }
 }

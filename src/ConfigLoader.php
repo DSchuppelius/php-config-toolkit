@@ -138,6 +138,44 @@ class ConfigLoader {
     }
 
     /**
+     * Holt einen Wert aus der Konfiguration und ersetzt Platzhalter in Strings oder Arrays.
+     *
+     * Diese Methode ruft einen Konfigurationswert aus der angegebenen Sektion ab
+     * und ersetzt Platzhalter ([VAR]) mit den übergebenen Parametern.
+     * Falls der Wert nicht existiert, wird der Standardwert zurückgegeben.
+     *
+     * @param string $section  Die Sektion in der Konfigurationsdatei (z. B. "shellExecutables").
+     * @param string $key      Der Schlüssel innerhalb der Sektion (z. B. "convert").
+     * @param array  $params   Ein assoziatives Array mit Platzhalter-Werten (z. B. ['[VAR]' => 'Wert']).
+     * @param mixed  $default  Standardwert, falls der Schlüssel nicht existiert.
+     * @return mixed           Der Wert aus der Konfiguration mit ersetzten Platzhaltern oder der Standardwert.
+     */
+    public function getWithReplaceParams(string $section, string $key, array $params = [], $default = null): mixed {
+        $configValue = $this->get($section, $key, $default);
+
+        if ($configValue === $default) {
+            return $default;
+        }
+
+        return $this->applyPlaceholders($configValue, $params);
+    }
+
+    /**
+     * Ersetzt Platzhalter ([VAR]) in Strings oder Arrays rekursiv.
+     */
+    private function applyPlaceholders(mixed $value, array $params): mixed {
+        if (is_string($value)) {
+            return str_replace(array_keys($params), array_values($params), $value);
+        }
+
+        if (is_array($value)) {
+            return array_map(fn($item) => $this->applyPlaceholders($item, $params), $value);
+        }
+
+        return $value;
+    }
+
+    /**
      * Lädt alle Konfigurationsdateien erneut
      */
     public function reload(): void {
