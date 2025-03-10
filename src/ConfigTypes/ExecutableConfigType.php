@@ -22,6 +22,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $this->isWindows = strtolower(PHP_OS_FAMILY) === "windows"; // Windows oder Linux
     }
 
+    private function sanitize(string $filename): string {
+        // Escape problematische Zeichen für Shell-Befehle (Windows & Linux)
+        return preg_replace('/([ \'"()\[\]{}!$`])/', '\\\$1', $filename);
+    }
+
     public function parse(array $data): array {
         $parsed = [];
 
@@ -132,7 +137,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $isAbsoluteWindowsPath = preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
 
         if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
-            return file_exists($command) ? $command : null;
+            return file_exists($command) ? $this->sanitize($command) : null;
         }
 
         $output = [];
@@ -146,7 +151,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         foreach ($output as $line) {
             $line = trim($line);
             if (!empty($line) && file_exists($line)) {
-                return $line;
+                return $this->sanitize($line);
             }
         }
 
