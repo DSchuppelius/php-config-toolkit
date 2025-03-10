@@ -2,7 +2,7 @@
     "shellExecutables": {
         "pdfinfo": {
             "path": "pdfinfo",
-            "required": true,
+            "required": false,
             "description": "PDF Info",
             "arguments": [
                 "'[INPUT]'"
