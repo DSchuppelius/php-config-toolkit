@@ -1,8 +1,13 @@
 {
     "shellExecutables": {
+        "ping": {
+            "path": "ping",
+            "required": true,
+            "description": "Ping"
+        },
         "mutt": {
             "path": "/usr/bin/mutt",
-            "required": true,
+            "required": false,
             "description": "Mail User Agent",
             "arguments": [
                 "-s",
@@ -28,7 +33,7 @@
     "javaExecutables": {
         "pdfbox": {
             "path": "/usr/local/bin/pdfbox-app-3.0.0-alpha2.jar",
-            "required": true,
+            "required": false,
             "description": "PDFBox",
             "arguments": [
                 "ExtractText"

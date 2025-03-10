@@ -13,18 +13,34 @@ declare(strict_types=1);
 namespace ConfigToolkit\ConfigTypes;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
+use Exception;
 
 class ExecutableConfigType extends ConfigTypeAbstract {
+    protected bool $isWindows;
+
+    public function __construct() {
+        $this->isWindows = strtolower(PHP_OS_FAMILY) === "windows"; // Windows oder Linux
+    }
+
     public function parse(array $data): array {
         $parsed = [];
+
         foreach ($data as $category => $executables) {
             foreach ($executables as $name => $executable) {
+                $executablePath = $this->getExecutablePath($executable);
+                $arguments = $this->getArguments($executable);
+                $debugArguments = $this->getDebugArguments($executable);
+
+                if (empty($executablePath) && ($executable['required'] ?? false)) {
+                    throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}'");
+                }
+
                 $parsed[$category][$name] = [
-                    'path' => $executable['path'] ?? null,
-                    'required' => $executable['required'] ?? false,
-                    'description' => $executable['description'] ?? '',
-                    'arguments' => $executable['arguments'] ?? [],
-                    'debugArguments' => $executable['debugArguments'] ?? [],
+                    'path'           => $executablePath,
+                    'required'       => $executable['required'] ?? false,
+                    'description'    => $executable['description'] ?? '',
+                    'arguments'      => $arguments,
+                    'debugArguments' => $debugArguments,
                 ];
             }
         }
@@ -37,12 +53,15 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 continue;
             }
             foreach ($section as $key => $value) {
-                if (isset($value['path']) && isset($value['arguments']) && is_array($value['arguments'])) {
-                    return true;
+                if (!isset($value['path'])) {
+                    return false; // `path` MUSS existieren
+                }
+                if (isset($value['windowsPath']) || isset($value['linuxPath'])) {
+                    return false; // Kein `windowsPath` oder `linuxPath` erlaubt
                 }
             }
         }
-        return false;
+        return true;
     }
 
     public function validate(array $data): array {
@@ -50,21 +69,87 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
         foreach ($data as $category => $executables) {
             foreach ($executables as $name => $executable) {
-                if (!isset($executable['path']) || !is_string($executable['path'])) {
-                    $errors[] = "Fehlender oder ungültiger 'path' für '{$name}' in '{$category}'.";
-                }
-                if (!isset($executable['required']) || !is_bool($executable['required'])) {
-                    $errors[] = "Fehlender oder ungültiger 'required' für '{$name}' in '{$category}'.";
+                $path = $this->getExecutablePath($executable);
+
+                if ($path === null && ($executable['required'] ?? false)) {
+                    $errors[] = "Kein ausführbarer Pfad für '{$name}' in '{$category}'.";
                 }
                 if (!isset($executable['arguments']) || !is_array($executable['arguments'])) {
-                    $errors[] = "Fehlender oder ungültiger 'arguments' für '{$name}' in '{$category}'.";
+                    $errors[] = "Ungültige oder fehlende 'arguments' für '{$name}' in '{$category}'.";
                 }
                 if (!isset($executable['debugArguments']) || !is_array($executable['debugArguments'])) {
-                    $errors[] = "Fehlender oder ungültiger 'debugArguments' für '{$name}' in '{$category}'.";
+                    $errors[] = "Ungültige oder fehlende 'debugArguments' für '{$name}' in '{$category}'.";
                 }
             }
         }
-
         return $errors;
+    }
+
+    /**
+     * Prüft, ob eine Datei existiert und ausführbar ist.
+     */
+    protected function isExecutable(?string $path): bool {
+        if (empty($path)) {
+            return false;
+        }
+
+        // Windows: `is_executable()` ist unzuverlässig, daher nur `file_exists()` prüfen
+        return $this->isWindows ? file_exists($path) : (file_exists($path) && is_executable($path));
+    }
+
+    /**
+     * Ermittelt den vollständigen Pfad einer ausführbaren Datei.
+     */
+    protected function getExecutablePath(array $executable): ?string {
+        $path = $executable['path'] ?? null;
+        return $this->findExecutablePath($path);
+    }
+
+    /**
+     * Gibt die Argumente für das ausführbare Programm zurück.
+     */
+    protected function getArguments(array $executable): array {
+        return $executable['arguments'] ?? [];
+    }
+
+    /**
+     * Gibt die Debug-Argumente für das ausführbare Programm zurück.
+     */
+    protected function getDebugArguments(array $executable): array {
+        return $executable['debugArguments'] ?? [];
+    }
+
+    /**
+     * Sucht eine ausführbare Datei im `PATH`.
+     */
+    protected function findExecutablePath(?string $command): ?string {
+        if (empty($command)) {
+            return null;
+        }
+
+        // Prüfen auf absolute UNIX- oder Windows-Pfade
+        $isAbsoluteUnixPath = preg_match('/^\/[^\/]+(\/[^\/]+)+$/', $command);
+        $isAbsoluteWindowsPath = preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
+
+        if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
+            return file_exists($command) ? $command : null;
+        }
+
+        $output = [];
+        $exitCode = 0;
+
+        // Finde ausführbaren Pfad in PATH-Umgebung
+        $lookupCommand = $this->isWindows ? "where" : "which";
+        exec("$lookupCommand " . escapeshellarg($command), $output, $exitCode);
+
+        // Falls mehrere Treffer, nehme den ersten gültigen
+        foreach ($output as $line) {
+            $line = trim($line);
+            if (!empty($line) && file_exists($line)) {
+                return $line;
+            }
+        }
+
+        return null;
     }
 }

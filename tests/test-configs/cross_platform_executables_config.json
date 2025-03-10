@@ -1,9 +1,32 @@
 {
     "shellExecutables": {
+        "pdfinfo": {
+            "path": "pdfinfo",
+            "required": true,
+            "description": "PDF Info",
+            "arguments": [
+                "'[INPUT]'"
+            ],
+            "debugArguments": [
+                "'[INPUT]'"
+            ]
+        },
+        "editor": {
+            "linuxPath": "vi",
+            "windowsPath": "notepad",
+            "required": true,
+            "description": "Mail User Agent",
+            "windowsArguments": ["'[INPUT]'"],
+            "linuxArguments": ["'[INPUT]'"],
+            "debugArguments": ["'[INPUT]'"],
+            "windowsDebugArguments": ["'[INPUT]'"],
+            "linuxDebugArguments": ["'[INPUT]'"]
+        },
+
         "mutt": {
             "linuxPath": "/usr/bin/mutt",
             "windowsPath": "C:\\Program Files\\Mutt\\mutt.exe",
-            "required": true,
+            "required": false,
             "description": "Mail User Agent",
             "arguments": ["-s", "'[subject]'"],
             "windowsArguments": ["/s", "'[subject]'"],
@@ -29,7 +52,7 @@
         "pdfbox": {
             "linuxPath": "/usr/local/bin/pdfbox-app-3.0.0-alpha2.jar",
             "windowsPath": "C:\\Tools\\pdfbox-app-3.0.0-alpha2.jar",
-            "required": true,
+            "required": false,
             "description": "PDFBox",
             "arguments": ["ExtractText"],
             "windowsArguments": ["ExtractText", "--windows-flag"],

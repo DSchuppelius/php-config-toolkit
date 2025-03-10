@@ -42,26 +42,30 @@ class ConfigLoaderTest extends TestCase {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->executablesConfigPath);
 
-        $mutt = $config->get('shellExecutables', 'mutt');
+        $ping = $config->get('shellExecutables', 'ping');
 
-        $this->assertNotNull($mutt);
-        $this->assertSame('/usr/bin/mutt', $mutt['path']);
-        $this->assertTrue($mutt['required']);
+        $this->assertNotNull($ping);
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->assertSame('C:\Windows\System32\PING.EXE', $ping['path']);
+        } else {
+            $this->assertSame('/usr/bin/ping', $ping['path']);
+        }
+        $this->assertTrue($ping['required']);
     }
 
     public function testCanLoadCrossPlattformExecutablesConfig(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->crossPlatformExecutablesConfigPath);
 
-        $mutt = $config->get('shellExecutables', 'mutt');
+        $editor = $config->get('shellExecutables', 'editor');
 
-        $this->assertNotNull($mutt);
+        $this->assertNotNull($editor);
         if (PHP_OS_FAMILY === 'Windows') {
-            $this->assertSame('C:\Program Files\Mutt\mutt.exe', $mutt['path']);
+            $this->assertSame('C:\Windows\System32\notepad.exe', $editor['path']);
         } else {
-            $this->assertSame('/usr/bin/mutt', $mutt['path']);
+            $this->assertSame('/usr/bin/vi', $editor['path']);
         }
-        $this->assertTrue($mutt['required']);
+        $this->assertTrue($editor['required']);
     }
 
     public function testThrowsExceptionForMissingConfigFile(): void {
