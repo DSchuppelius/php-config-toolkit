@@ -132,7 +132,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $isAbsoluteWindowsPath = preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
 
         if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
-            return file_exists($command) ? escapeshellarg($command) : null;
+            return file_exists($command) ? $command : null;
         }
 
         $output = [];
@@ -146,7 +146,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         foreach ($output as $line) {
             $line = trim($line);
             if (!empty($line) && file_exists($line)) {
-                return escapeshellarg($line);
+                return $line;
             }
         }
 
