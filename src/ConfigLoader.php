@@ -24,6 +24,7 @@ class ConfigLoader {
 
     protected array $config = [];
     protected array $filePaths = [];
+    protected array $loadedFiles = []; // Speichert bereits geladene Konfigurationsdateien
     protected ClassLoader $classLoader;
     protected ?ConfigTypeInterface $configType = null;
 
@@ -52,15 +53,34 @@ class ConfigLoader {
     }
 
     /**
-     * Lädt eine einzelne Konfigurationsdatei
+     * Prüft, ob eine Konfigurationsdatei bereits geladen wurde
      */
-    public function loadConfigFile(string $filePath, bool $throwException = false): void {
-        if (!file_exists($filePath)) {
-            $this->logWarning("Konfigurationsdatei nicht gefunden: {$filePath}");
+    public function hasLoadedConfigFile(string $filePath): bool {
+        return in_array(realpath($filePath), $this->loadedFiles, true);
+    }
+
+    /**
+     * Lädt eine einzelne Konfigurationsdatei, falls sie nicht bereits geladen wurde.
+     *
+     * @param string $filePath - Pfad zur Konfigurationsdatei
+     * @param bool $throwException - Falls `true`, wird eine Exception geworfen, wenn die Datei nicht existiert
+     * @param bool $forceReload - Falls `true`, wird die Datei erneut geladen, auch wenn sie bereits geladen wurde
+     */
+    public function loadConfigFile(string $filePath, bool $throwException = false, bool $forceReload = false): void {
+        $realPath = realpath($filePath);
+
+        if (!$realPath) {
+            $this->logError("Konfigurationsdatei nicht gefunden: {$filePath}");
             throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
+            return;
         }
 
-        $jsonContent = file_get_contents($filePath);
+        if (!$forceReload && $this->hasLoadedConfigFile($realPath)) {
+            $this->logInfo("Konfigurationsdatei bereits geladen, übersprungen: $realPath");
+            return;
+        }
+
+        $jsonContent = file_get_contents($realPath);
         $data = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -74,9 +94,10 @@ class ConfigLoader {
 
             // Merge der Konfiguration, spätere Dateien überschreiben frühere
             $this->config = array_replace_recursive($this->config, $parsedConfig);
-            $this->logInfo("Konfigurationsdatei geladen: $filePath");
+            $this->loadedFiles[] = $realPath; // Speichert die Datei als geladen
+            $this->logInfo("Konfigurationsdatei geladen: $realPath");
         } catch (Exception $e) {
-            $this->logError("Fehler beim Laden der Konfigurationsdatei $filePath: " . $e->getMessage());
+            $this->logError("Fehler beim Laden der Konfigurationsdatei $realPath: " . $e->getMessage());
             if ($throwException) {
                 throw $e;
             }
@@ -86,9 +107,9 @@ class ConfigLoader {
     /**
      * Lädt mehrere Konfigurationsdateien auf einmal
      */
-    public function loadConfigFiles(array $filePaths): void {
+    public function loadConfigFiles(array $filePaths, bool $throwException = false, bool $forceReload = false): void {
         foreach ($filePaths as $filePath) {
-            $this->loadConfigFile($filePath);
+            $this->loadConfigFile($filePath, $throwException, $forceReload);
         }
     }
 
@@ -118,7 +139,8 @@ class ConfigLoader {
      */
     public function reload(): void {
         $this->config = [];
-        $this->loadConfigFiles($this->filePaths);
+        $this->loadedFiles = []; // Setzt die geladenen Dateien zurück
+        $this->loadConfigFiles($this->filePaths, true);
     }
 
     public static function resetInstance(): void {
