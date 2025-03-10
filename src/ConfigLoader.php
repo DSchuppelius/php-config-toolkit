@@ -16,6 +16,7 @@ use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
 use ConfigToolkit\Traits\ErrorLog;
 use Exception;
+use Psr\Log\LoggerInterface;
 
 class ConfigLoader {
     use ErrorLog;
@@ -31,23 +32,25 @@ class ConfigLoader {
     protected static string $configTypesDirectory = __DIR__ . DIRECTORY_SEPARATOR . 'ConfigTypes';
     protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
 
-    private function __construct() {
-        if (function_exists('openlog')) {
+    private function __construct(?LoggerInterface $logger = null) {
+        if (!is_null($logger)) {
+            $this->setLogger($logger);
+        } elseif (function_exists('openlog')) {
             if (defined('LOG_LOCAL0')) {
                 openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
             } else {
                 openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_USER);
             }
         }
-        $this->classLoader = new ClassLoader(self::$configTypesDirectory, self::$configTypesNamespace, ConfigTypeInterface::class);
+        $this->classLoader = new ClassLoader(self::$configTypesDirectory, self::$configTypesNamespace, ConfigTypeInterface::class, $logger);
     }
 
     /**
      * Singleton-Pattern, ohne sofortige Konfigurationsdatei
      */
-    public static function getInstance(): static {
+    public static function getInstance(?LoggerInterface $logger = null): static {
         if (self::$instance === null) {
-            self::$instance = new static();
+            self::$instance = new static($logger);
         }
         return self::$instance;
     }

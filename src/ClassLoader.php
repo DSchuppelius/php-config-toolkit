@@ -15,6 +15,7 @@ namespace ConfigToolkit;
 use ConfigToolkit\Traits\ErrorLog;
 use ReflectionClass;
 use Exception;
+use Psr\Log\LoggerInterface;
 
 class ClassLoader {
     use ErrorLog;
@@ -25,12 +26,14 @@ class ClassLoader {
 
     private array $classes = [];
 
-    public function __construct(string $directory, string $namespace, string $interface) {
+    public function __construct(string $directory, string $namespace, string $interface, ?LoggerInterface $logger = null) {
         $this->directory = $directory;
         $this->namespace = $namespace;
         $this->interface = $interface;
 
-        if (function_exists('openlog')) {
+        if (!is_null($logger)) {
+            $this->setLogger($logger);
+        } elseif (function_exists('openlog')) {
             if (defined('LOG_LOCAL0')) {
                 openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
             } else {
