@@ -116,5 +116,9 @@
 	"PerPeriod": [
 		"01 Finanzbuchhaltung",
 		"02 Entgeltabrechnung"
+	],
+	"TenantIDs":[
+		50004,
+		20542
 	]
 }

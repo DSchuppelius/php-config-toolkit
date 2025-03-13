@@ -61,7 +61,7 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
      * Prüft, ob ein Array eine "flache" Struktur hat (z.B. eine Liste von Strings).
      */
     private function isFlatArray(mixed $items): bool {
-        return is_array($items) && array_reduce($items, fn($carry, $item) => $carry && is_string($item), true);
+        return is_array($items) && array_reduce($items, fn($carry, $item) => $carry && (is_string($item) || is_numeric($item) || is_bool($item)), true);
     }
 
     /**
