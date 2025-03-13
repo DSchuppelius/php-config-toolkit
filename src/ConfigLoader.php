@@ -131,9 +131,23 @@ class ConfigLoader {
     }
 
     /**
-     * Gibt einen bestimmten Wert aus der geladenen Konfiguration zurück
+     * Gibt entweder den kompletten Abschnitt oder einen bestimmten Wert aus der Konfiguration zurück.
+     *
+     * @param string $section Die Sektion in der Konfigurationsdatei (z. B. "DatevDMSMapping").
+     * @param string|null $key Der Schlüssel innerhalb der Sektion (z. B. "01 Stammakte Einkommensbesch."). Falls null, wird die gesamte Sektion zurückgegeben.
+     * @param mixed $default Standardwert, falls die Sektion oder der Key nicht existiert.
+     * @return mixed Der Wert aus der Konfiguration oder der Standardwert.
      */
-    public function get(string $section, string $key, $default = null) {
+    public function get(string $section, ?string $key = null, mixed $default = null): mixed {
+        if (!isset($this->config[$section])) {
+            return $default;
+        }
+
+        // Falls kein Key angegeben wird, geben wir den kompletten Abschnitt zurück
+        if ($key === null) {
+            return $this->config[$section];
+        }
+
         return $this->config[$section][$key] ?? $default;
     }
 
@@ -150,7 +164,7 @@ class ConfigLoader {
      * @param mixed  $default  Standardwert, falls der Schlüssel nicht existiert.
      * @return mixed           Der Wert aus der Konfiguration mit ersetzten Platzhaltern oder der Standardwert.
      */
-    public function getWithReplaceParams(string $section, string $key, array $params = [], $default = null): mixed {
+    public function getWithReplaceParams(string $section, ?string $key = null, array $params = [], mixed $default = null): mixed {
         $configValue = $this->get($section, $key, $default);
 
         if ($configValue === $default) {

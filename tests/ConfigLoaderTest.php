@@ -41,6 +41,8 @@ class ConfigLoaderTest extends TestCase {
         $this->assertSame(3, $config->get('maxYears', 'previousYears4Internal'));
         $this->assertSame("Vorjahre", $config->get('maxYears', 'previousYearsFolderName4Internal'));
         $this->assertFalse($config->get('Debugging', 'debug'));
+        $this->assertIsArray($config->get('TenantIDs'));
+        $this->assertIsArray($config->get('DatevDMSMapping'));
     }
 
     public function testCanLoadinValidConfig(): void {
