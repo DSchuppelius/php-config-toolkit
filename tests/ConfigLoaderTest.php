@@ -11,12 +11,14 @@ use PHPUnit\Framework\TestCase;
 class ConfigLoaderTest extends TestCase {
     private string $validConfigPath;
     private string $invalidConfigPath;
+    private string $advancedConfigPath;
     private string $executablesConfigPath;
     private string $crossPlatformExecutablesConfigPath;
 
     protected function setUp(): void {
         $this->validConfigPath = __DIR__ . '/test-configs/valid_config.json';
         $this->invalidConfigPath = __DIR__ . '/test-configs/invalid_config.json';
+        $this->advancedConfigPath = __DIR__ . '/test-configs/advancedvalid_config.json';
         $this->executablesConfigPath = __DIR__ . '/test-configs/executables_config.json';
         $this->crossPlatformExecutablesConfigPath = __DIR__ . '/test-configs/cross_platform_executables_config.json';
     }
@@ -29,6 +31,16 @@ class ConfigLoaderTest extends TestCase {
         $this->assertSame(5242880, $config->get('Logger', 'maxFileSize'));
         $this->assertSame("5242880", $config->get('Logger', 'maxTestFileSize'));
         $this->assertTrue($config->get('Archive', 'enabled'));
+    }
+
+    public function testCanLoadAdvValidConfig(): void {
+        $config = ConfigLoader::getInstance();
+        $config->loadConfigFile($this->advancedConfigPath);
+
+        $this->assertSame('/tmp/log.txt', $config->get('Logging', 'path'));
+        $this->assertSame(3, $config->get('maxYears', 'previousYears4Internal'));
+        $this->assertSame("Vorjahre", $config->get('maxYears', 'previousYearsFolderName4Internal'));
+        $this->assertFalse($config->get('Debugging', 'debug'));
     }
 
     public function testCanLoadinValidConfig(): void {

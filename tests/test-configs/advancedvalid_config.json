@@ -1,0 +1,120 @@
+{
+	"DatevAPI": [
+		{
+			"key": "resourceurl",
+			"value": "https://127.0.0.1:58452",
+			"type": "text",
+			"description": "Url to the Datev API",
+			"enabled": true
+		},
+		{
+			"key": "user",
+			"value": "user",
+			"type": "text",
+			"description": "Username for the Datev API",
+			"enabled": true
+		},
+		{
+			"key": "password",
+			"value": "password",
+			"type": "text",
+			"description": "Password for the Datev API",
+			"enabled": true
+		}
+	],
+	"Path": [
+		{
+			"key": "internalStore",
+			"value": "/tmp",
+			"type": "text",
+			"description": "Path to the internal store where the tenant files are stored",
+			"enabled": true
+		}
+	],
+	"ExcludedFolders": [
+		"/tmp/internal_store_test/abc",
+		"/tmp/internal_store_test/123"
+	],
+	"Logging": [
+		{
+			"key": "log",
+			"value": "File",
+			"type": "text",
+			"description": "log to (Console, File, Null)",
+			"enabled": true
+		},
+		{
+			"key": "level",
+			"value": "info",
+			"type": "text",
+			"description": "(emergency, alert, critical, error, warning, notice, info, debug)",
+			"enabled": true
+		},
+		{
+			"key": "path",
+			"value": "/tmp/log.txt",
+			"type": "text",
+			"description": "path to log file",
+			"enabled": true
+		}
+	],
+	"Debugging": [
+		{
+			"key": "debug",
+			"value": false,
+			"type": "bool",
+			"description": "debugging -> If enabled log get to Console",
+			"enabled": true
+		}
+	],
+	"maxYears": [
+		{
+			"key": "previousYears4Internal",
+			"value": 3,
+			"type": "number",
+			"description": "maximal years before put in previous years",
+			"enabled": true
+		},
+		{
+			"key": "previousYearsFolderName4Internal",
+			"value": "Vorjahre",
+			"type": "text",
+			"description": "foldername for maximal years before put in previous years",
+			"enabled": true
+		}
+	],
+	"DatevDMSMapping": {
+		"01 Stammakte Einkommensbesch.": "04 Sonstiges/Einkommensbescheinigungen",
+		"01 Stammakte Gebührenabrechnungen": "04 Sonstiges/Sonstiges",
+		"01 Stammakte Prüfungen": "04 Sonstiges/Betriebsprüfungen",
+		"01 Stammakte Sonstiges": "04 Sonstiges/Sonstiges",
+		"01 Stammakte Stammdaten": "04 Sonstiges/Stammdaten",
+		"01 Stammakte Verträge": "04 Sonstiges/Verträge",
+		"02 Steuern Dauerakte": "03 Erklärungen, Abschlüsse, Bescheide",
+		"02 Steuern ESt - KSt - Festst.": "03 Erklärungen, Abschlüsse, Bescheide",
+		"02 Steuern ESt - KSt - Festst. Belege": "03 Erklärungen, Abschlüsse, Bescheide",
+		"02 Steuern GewSt": "03 Erklärungen, Abschlüsse, Bescheide",
+		"02 Steuern Steuervorausschau": "04 Sonstiges/Sonstiges",
+		"02 Steuern USt": "03 Erklärungen, Abschlüsse, Bescheide",
+		"03 Jahresabschluss Dauerakte": "03 Erklärungen, Abschlüsse, Bescheide",
+		"03 Jahresabschluss Jahresabschluss": "03 Erklärungen, Abschlüsse, Bescheide",
+		"04 FIBU Arbeitspapiere FIBU": "01 Finanzbuchhaltung",
+		"04 FIBU Auswertungen FIBU": "01 Finanzbuchhaltung",
+		"04 FIBU Finanzamt lfd.": "01 Finanzbuchhaltung/%s/FA Mahnungen, Umbuchung etc",
+		"05 Lohn Diverses": "02 Entgeltabrechnung",
+		"05 Lohn Gehaltsabrechnungen": "02 Entgeltabrechnung",
+		"05 Lohn Sozialversicherung": "02 Entgeltabrechnung",
+		"05 Lohn Finanzamt": "02 Entgeltabrechnung",
+		"05 Lohn Mandantenunterlagen": "02 Entgeltabrechnung",
+		"Belege zu buchen": "04 Sonstiges/Belege",
+		"Belege gebucht": "04 Sonstiges/Belege"
+	},
+	"PerYear": [
+		"01 Finanzbuchhaltung/%s/FA Mahnungen, Umbuchung etc",
+		"03 Erklärungen, Abschlüsse, Bescheide"
+	],
+	"PerPeriod": [
+		"01 Finanzbuchhaltung",
+		"02 Entgeltabrechnung"
+	]
+}

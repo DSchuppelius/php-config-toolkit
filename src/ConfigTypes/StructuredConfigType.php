@@ -1,12 +1,4 @@
 <?php
-/*
- * Created on   : Wed Feb 19 2025
- * Author       : Daniel Jörg Schuppelius
- * Author Uri   : https://schuppelius.org
- * Filename     : StructuredConfigType.php
- * License      : MIT License
- * License Uri  : https://opensource.org/license/mit
- */
 
 declare(strict_types=1);
 
@@ -20,36 +12,22 @@ class StructuredConfigType extends ConfigTypeAbstract {
         $parsed = [];
         foreach ($data as $section => $items) {
             foreach ($items as $item) {
-                if (isset($item['enabled']) && $item['enabled'] !== true) {
+                if (!($item['enabled'] ?? true)) {
                     continue;
                 }
 
-                $key = $item['key'] ?? null;
-                $value = $item['value'] ?? null;
-                $type = $item['type'] ?? 'text';
-
-                if (!is_null($key)) {
-                    $parsed[$section][$key] = $this->castValue($value, $type);
-                } else {
+                if (!isset($item['key'])) {
                     throw new Exception("Fehlender 'key' in '{$section}'.");
                 }
+
+                $parsed[$section][$item['key']] = $this->castValue($item['value'] ?? null, $item['type'] ?? 'text');
             }
         }
         return $parsed;
     }
 
     public function matches(array $data): bool {
-        foreach ($data as $section) {
-            if (!is_array($section)) {
-                continue;
-            }
-            foreach ($section as $item) {
-                if (isset($item['key']) && isset($item['value'])) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return array_reduce($data, fn($carry, $section) => $carry || $this->hasKeyValueStructure($section), false);
     }
 
     public function validate(array $data): array {
@@ -60,7 +38,7 @@ class StructuredConfigType extends ConfigTypeAbstract {
                 if (!isset($item['key']) || !is_string($item['key'])) {
                     $errors[] = "Fehlender oder ungültiger 'key' in '{$section}' an Index {$index}.";
                 }
-                if (!isset($item['value'])) {
+                if (!array_key_exists('value', $item)) {
                     $errors[] = "Fehlender 'value' in '{$section}' an Index {$index}.";
                 }
                 if (!isset($item['enabled']) || !is_bool($item['enabled'])) {
@@ -72,11 +50,15 @@ class StructuredConfigType extends ConfigTypeAbstract {
         return $errors;
     }
 
-    private function castValue($value, string $type) {
+    protected function castValue($value, string $type) {
         return match ($type) {
             'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
             'number' => is_numeric($value) ? (int) $value : 0,
             default => (string) $value,
         };
+    }
+
+    protected function hasKeyValueStructure(mixed $items): bool {
+        return is_array($items) && array_reduce($items, fn($carry, $item) => $carry || (is_array($item) && isset($item['key'], $item['value'])), false);
     }
 }
