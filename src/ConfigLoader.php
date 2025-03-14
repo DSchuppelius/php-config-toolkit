@@ -69,18 +69,20 @@ class ConfigLoader {
      * @param bool $throwException - Falls `true`, wird eine Exception geworfen, wenn die Datei nicht existiert
      * @param bool $forceReload - Falls `true`, wird die Datei erneut geladen, auch wenn sie bereits geladen wurde
      */
-    public function loadConfigFile(string $filePath, bool $throwException = false, bool $forceReload = false): void {
+    public function loadConfigFile(string $filePath, bool $throwException = false, bool $forceReload = false): bool {
         $realPath = realpath($filePath);
 
         if (!$realPath) {
             $this->logError("Konfigurationsdatei nicht gefunden: {$filePath}");
-            throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
-            return;
+            if ($throwException) {
+                throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
+            }
+            return false;
         }
 
         if (!$forceReload && $this->hasLoadedConfigFile($realPath)) {
             $this->logInfo("Konfigurationsdatei bereits geladen, übersprungen: $realPath");
-            return;
+            return true;
         }
 
         $jsonContent = file_get_contents($realPath);
@@ -88,7 +90,9 @@ class ConfigLoader {
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->logError("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
-            throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
+            if ($throwException) {
+                throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
+            }
         }
 
         try {
@@ -104,16 +108,22 @@ class ConfigLoader {
             if ($throwException) {
                 throw $e;
             }
+            return false;
         }
+        return true;
     }
 
     /**
      * Lädt mehrere Konfigurationsdateien auf einmal
      */
-    public function loadConfigFiles(array $filePaths, bool $throwException = false, bool $forceReload = false): void {
+    public function loadConfigFiles(array $filePaths, bool $throwException = false, bool $forceReload = false): bool {
+        $result = true;
         foreach ($filePaths as $filePath) {
-            $this->loadConfigFile($filePath, $throwException, $forceReload);
+            if (!$this->loadConfigFile($filePath, $throwException, $forceReload)) {
+                $result = false;
+            }
         }
+        return $result;
     }
 
     /**

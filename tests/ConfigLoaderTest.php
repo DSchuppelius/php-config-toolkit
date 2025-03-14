@@ -87,7 +87,7 @@ class ConfigLoaderTest extends TestCase {
         $this->expectExceptionMessage("Konfigurationsdatei nicht gefunden");
 
         $config = ConfigLoader::getInstance();
-        $config->loadConfigFile(__DIR__ . '/test-configs/non_existent.json');
+        $config->loadConfigFile(__DIR__ . '/test-configs/non_existent.json', true);
     }
 
     public function testGetWithReplaceParams(): void {
