@@ -50,14 +50,6 @@ class StructuredConfigType extends ConfigTypeAbstract {
         return $errors;
     }
 
-    protected function castValue($value, string $type) {
-        return match ($type) {
-            'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
-            'number' => is_numeric($value) ? (int) $value : 0,
-            default => (string) $value,
-        };
-    }
-
     protected function hasKeyValueStructure(mixed $items): bool {
         return is_array($items) && array_reduce($items, fn($carry, $item) => $carry || (is_array($item) && isset($item['key'], $item['value'])), false);
     }
