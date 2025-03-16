@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace ConfigToolkit;
 
-use ConfigToolkit\Traits\ErrorLog;
+use ERRORToolkit\Traits\ErrorLog;
 use ReflectionClass;
 use Exception;
 use Psr\Log\LoggerInterface;

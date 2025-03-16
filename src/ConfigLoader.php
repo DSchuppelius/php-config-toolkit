@@ -14,7 +14,7 @@ namespace ConfigToolkit;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
-use ConfigToolkit\Traits\ErrorLog;
+use ERRORToolkit\Traits\ErrorLog;
 use Exception;
 use Psr\Log\LoggerInterface;
 

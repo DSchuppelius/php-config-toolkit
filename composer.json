@@ -26,7 +26,8 @@
     },
     "require": {
         "php": ">=8.0",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "dschuppelius/php-error-toolkit": "^1.2"
     },
     "scripts": {
         "test": "vendor/bin/phpunit"
