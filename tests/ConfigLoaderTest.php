@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests;
 
 use ConfigToolkit\ConfigLoader;
+use ERRORToolkit\Factories\ConsoleLoggerFactory;
 use Exception;
 use PHPUnit\Framework\TestCase;
+use SebastianBergmann\Environment\Console;
 
 class ConfigLoaderTest extends TestCase {
     private string $validConfigPath;
@@ -26,7 +28,7 @@ class ConfigLoaderTest extends TestCase {
     }
 
     public function testCanLoadValidConfig(): void {
-        $config = ConfigLoader::getInstance();
+        $config = ConfigLoader::getInstance(ConsoleLoggerFactory::getLogger());
         $config->loadConfigFile($this->validConfigPath);
 
         $this->assertSame('log.txt', $config->get('Logger', 'logFile'));

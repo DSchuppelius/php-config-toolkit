@@ -35,17 +35,6 @@ class ClassLoader {
         $this->reloadClasses();
     }
 
-    private function initializeLogger(?LoggerInterface $logger): void {
-        if (!is_null($logger)) {
-            $this->setLogger($logger);
-            return;
-        }
-
-        if (function_exists('openlog')) {
-            openlog("php-config-toolkit", LOG_PID | LOG_PERROR, defined('LOG_LOCAL0') ? LOG_LOCAL0 : LOG_USER);
-        }
-    }
-
     public function reloadClasses(): void {
         $this->logInfo("Lade Klassen aus Verzeichnis: $this->directory mit Namespace: $this->namespace");
 

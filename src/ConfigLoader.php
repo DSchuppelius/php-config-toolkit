@@ -33,15 +33,8 @@ class ConfigLoader {
     protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
 
     private function __construct(?LoggerInterface $logger = null) {
-        if (!is_null($logger)) {
-            $this->setLogger($logger);
-        } elseif (function_exists('openlog')) {
-            if (defined('LOG_LOCAL0')) {
-                openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
-            } else {
-                openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_USER);
-            }
-        }
+        $this->initializeLogger($logger);
+
         $this->classLoader = new ClassLoader(self::$configTypesDirectory, self::$configTypesNamespace, ConfigTypeInterface::class, $logger);
     }
 
