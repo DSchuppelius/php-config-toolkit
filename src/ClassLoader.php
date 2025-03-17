@@ -27,21 +27,23 @@ class ClassLoader {
     private array $classes = [];
 
     public function __construct(string $directory, string $namespace, string $interface, ?LoggerInterface $logger = null) {
-        $this->directory = $directory;
+        $this->directory = realpath($directory) ?: $directory;
         $this->namespace = $namespace;
         $this->interface = $interface;
 
+        $this->initializeLogger($logger);
+        $this->reloadClasses();
+    }
+
+    private function initializeLogger(?LoggerInterface $logger): void {
         if (!is_null($logger)) {
             $this->setLogger($logger);
-        } elseif (function_exists('openlog')) {
-            if (defined('LOG_LOCAL0')) {
-                openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_LOCAL0);
-            } else {
-                openlog("php-config-toolkit", LOG_PID | LOG_PERROR, LOG_USER);
-            }
+            return;
         }
 
-        $this->reloadClasses();
+        if (function_exists('openlog')) {
+            openlog("php-config-toolkit", LOG_PID | LOG_PERROR, defined('LOG_LOCAL0') ? LOG_LOCAL0 : LOG_USER);
+        }
     }
 
     public function reloadClasses(): void {
@@ -53,7 +55,7 @@ class ClassLoader {
         }
 
         $this->classes = [];
-        $files = scandir($this->directory);
+        $files = glob($this->directory . '/*.php');
 
         if ($files === false) {
             $this->logError("Fehler beim Lesen des Verzeichnisses: $this->directory");
@@ -68,8 +70,14 @@ class ClassLoader {
             $className = $this->namespace . '\\' . pathinfo($file, PATHINFO_FILENAME);
 
             if (!class_exists($className)) {
-                $this->logWarning("Klasse nicht gefunden oder nicht autoloaded: $className");
-                continue;
+                if (file_exists($file)) {
+                    require_once $file;
+                }
+
+                if (!class_exists($className)) {
+                    $this->logWarning("Klasse nicht gefunden oder nicht autoloaded: $className");
+                    continue;
+                }
             }
 
             try {

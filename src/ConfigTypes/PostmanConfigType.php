@@ -1,0 +1,82 @@
+<?php
+/*
+ * Created on   : Mon Mar 17 2025
+ * Author       : Daniel Jörg Schuppelius
+ * Author Uri   : https://schuppelius.org
+ * Filename     : PostmanConfigType.php
+ * License      : MIT License
+ * License Uri  : https://opensource.org/license/mit
+ */
+
+declare(strict_types=1);
+
+namespace ConfigToolkit\ConfigTypes;
+
+use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
+use Exception;
+
+class PostmanConfigType extends ConfigTypeAbstract {
+    /**
+     * Prüft, ob die gegebene Konfiguration dem Postman-Format entspricht.
+     */
+    public function matches(array $data): bool {
+        return isset($data['id'], $data['name'], $data['values']) && is_array($data['values']);
+    }
+
+    /**
+     * Konvertiert die Postman-Konfigurationsstruktur in eine nutzbare Form.
+     */
+    public function parse(array $data): array {
+        $parsed = [];
+        foreach ($data['values'] as $item) {
+            if (!($item['enabled'] ?? true)) {
+                continue; // Überspringe deaktivierte Einträge
+            }
+
+            if (!isset($item['key'])) {
+                throw new Exception("Fehlender 'key' in Postman-Konfigurationswerten.");
+            }
+
+            $key = $item['key'];
+            $value = $item['value'] ?? null;
+            $type = $item['type'] ?? 'text';
+
+            $parsed['values'][$key] = $this->castValue($value, $type);
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * Validiert die Postman-Konfiguration.
+     */
+    public function validate(array $data): array {
+        $errors = [];
+
+        if (!isset($data['id']) || !is_string($data['id'])) {
+            $errors[] = "Fehlende oder ungültige 'id'.";
+        }
+
+        if (!isset($data['name']) || !is_string($data['name'])) {
+            $errors[] = "Fehlender oder ungültiger 'name'.";
+        }
+
+        if (!isset($data['values']) || !is_array($data['values'])) {
+            $errors[] = "Fehlende oder ungültige 'values'-Struktur.";
+        } else {
+            foreach ($data['values'] as $index => $item) {
+                if (!isset($item['key']) || !is_string($item['key'])) {
+                    $errors[] = "Fehlender oder ungültiger 'key' in values[{$index}].";
+                }
+                if (!isset($item['value'])) {
+                    $errors[] = "Fehlender 'value' in values[{$index}].";
+                }
+                if (isset($item['enabled']) && !is_bool($item['enabled'])) {
+                    $errors[] = "Ungültiger 'enabled'-Wert in values[{$index}]. Muss bool sein.";
+                }
+            }
+        }
+
+        return $errors;
+    }
+}
