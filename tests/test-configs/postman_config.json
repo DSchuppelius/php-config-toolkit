@@ -1,0 +1,19 @@
+{
+	"id": "50f06896-c367-476e-b3ac-1a03179aa9aa",
+	"name": "lexoffice API",
+	"values": [
+		{
+			"key": "resourceurl",
+			"value": "https://api.lexoffice.io",
+			"type": "text",
+			"description": "",
+			"enabled": true
+		},
+		{
+			"key": "accessToken",
+			"value": "abcdefghijklmnopqrstuvwxyz0123456789",
+			"description": "",
+			"enabled": true
+		}
+	]
+}

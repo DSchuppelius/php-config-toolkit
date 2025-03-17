@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 class ConfigLoaderTest extends TestCase {
     private string $validConfigPath;
     private string $invalidConfigPath;
+    private string $postmanConfigPath;
     private string $advancedConfigPath;
     private string $executablesConfigPath;
     private string $crossPlatformExecutablesConfigPath;
@@ -18,6 +19,7 @@ class ConfigLoaderTest extends TestCase {
     protected function setUp(): void {
         $this->validConfigPath = __DIR__ . '/test-configs/valid_config.json';
         $this->invalidConfigPath = __DIR__ . '/test-configs/invalid_config.json';
+        $this->postmanConfigPath = __DIR__ . '/test-configs/postman_config.json';
         $this->advancedConfigPath = __DIR__ . '/test-configs/advancedvalid_config.json';
         $this->executablesConfigPath = __DIR__ . '/test-configs/executables_config.json';
         $this->crossPlatformExecutablesConfigPath = __DIR__ . '/test-configs/cross_platform_executables_config.json';
@@ -43,6 +45,15 @@ class ConfigLoaderTest extends TestCase {
         $this->assertFalse($config->get('Debugging', 'debug'));
         $this->assertIsArray($config->get('TenantIDs'));
         $this->assertIsArray($config->get('DatevDMSMapping'));
+    }
+
+    public function testCanLoadPostmanConfig(): void {
+        $config = ConfigLoader::getInstance();
+        $config->loadConfigFile($this->postmanConfigPath);
+
+        $this->assertSame('50f06896-c367-476e-b3ac-1a03179aa9aa', $config->get('id'));
+        $this->assertSame('lexoffice API', $config->get('name'));
+        $this->assertIsArray($config->get('values'));
     }
 
     public function testCanLoadinValidConfig(): void {

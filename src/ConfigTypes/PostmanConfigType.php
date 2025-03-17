@@ -28,6 +28,9 @@ class PostmanConfigType extends ConfigTypeAbstract {
      */
     public function parse(array $data): array {
         $parsed = [];
+        $parsed['id'] = $data['id'];
+        $parsed['name'] = $data['name'];
+
         foreach ($data['values'] as $item) {
             if (!($item['enabled'] ?? true)) {
                 continue; // Überspringe deaktivierte Einträge
