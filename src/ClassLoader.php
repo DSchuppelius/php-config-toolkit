@@ -83,7 +83,7 @@ class ClassLoader {
                 }
 
                 $this->classes[] = $className;
-                $this->logInfo("Klasse erfolgreich geladen: $className");
+                $this->logDebug("Klasse erfolgreich geladen: $className");
             } catch (Exception $e) {
                 $this->logError("Fehler beim Verarbeiten der Klasse $className: " . $e->getMessage());
             }
