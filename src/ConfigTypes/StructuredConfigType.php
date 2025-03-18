@@ -51,6 +51,6 @@ class StructuredConfigType extends ConfigTypeAbstract {
     }
 
     protected function hasKeyValueStructure(mixed $items): bool {
-        return is_array($items) && array_reduce($items, fn($carry, $item) => $carry || (is_array($item) && isset($item['key'], $item['value'])), false);
+        return is_array($items) && count($items) > 0 && array_reduce($items, fn($carry, $item) => $carry && is_array($item) && isset($item['key'], $item['value']) && is_string($item['key']), true);
     }
 }
