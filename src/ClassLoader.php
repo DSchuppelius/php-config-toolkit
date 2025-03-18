@@ -55,9 +55,7 @@ class ClassLoader {
         }
 
         foreach ($files as $file) {
-            $relativePath = str_replace([$this->directory . DIRECTORY_SEPARATOR, '.php'], '', $file);
-            $relativePath = str_replace(DIRECTORY_SEPARATOR, '\\', $relativePath);
-            $className = $this->namespace . '\\' . $relativePath;
+            $className = $this->getClassNameFromFile($file);
 
             if (!class_exists($className)) {
                 if (file_exists($file)) {
@@ -109,6 +107,16 @@ class ClassLoader {
         }
 
         return $files;
+    }
+
+    private function getClassNameFromFile(string $file): string {
+        // Relativen Pfad zum Basispfad berechnen
+        $relativePath = substr($file, strlen($this->directory) + 1, -4); // Entfernt das .php
+
+        // Standardisiere die Trennzeichen für den Namespace
+        $relativePath = str_replace(['/', '\\'], '\\', $relativePath);
+
+        return $this->namespace . '\\' . $relativePath;
     }
 
     /**
