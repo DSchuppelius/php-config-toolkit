@@ -27,9 +27,12 @@ class StructuredConfigType extends ConfigTypeAbstract {
     }
 
     public function matches(array $data): bool {
-        if (isset($data['id'], $data['name'], $data['values']) && is_array($data['values'])) {
+        if ((new PostmanConfigType())->matches($data)) {
+            return false;
+        } else if ((new AdvancedStructuredConfigType())->matches($data)) {
             return false;
         }
+
         return array_reduce($data, fn($carry, $section) => $carry || $this->hasKeyValueStructure($section), false);
     }
 
