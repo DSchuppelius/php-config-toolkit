@@ -27,6 +27,9 @@ class StructuredConfigType extends ConfigTypeAbstract {
     }
 
     public function matches(array $data): bool {
+        if (isset($data['id'], $data['name'], $data['values']) && is_array($data['values'])) {
+            return false;
+        }
         return array_reduce($data, fn($carry, $section) => $carry || $this->hasKeyValueStructure($section), false);
     }
 
