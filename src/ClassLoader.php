@@ -16,6 +16,9 @@ use ERRORToolkit\Traits\ErrorLog;
 use ReflectionClass;
 use Exception;
 use Psr\Log\LoggerInterface;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 
 class ClassLoader {
     use ErrorLog;
@@ -44,19 +47,17 @@ class ClassLoader {
         }
 
         $this->classes = [];
-        $files = glob($this->directory . '/*.php');
+        $files = $this->getPhpFilesRecursive($this->directory);
 
-        if ($files === false) {
-            $this->logError("Fehler beim Lesen des Verzeichnisses: $this->directory");
-            throw new Exception("Konnte das Verzeichnis nicht lesen: $this->directory");
+        if (empty($files)) {
+            $this->logWarning("Keine PHP-Dateien im Verzeichnis $this->directory gefunden.");
+            return;
         }
 
         foreach ($files as $file) {
-            if (pathinfo($file, PATHINFO_EXTENSION) !== 'php') {
-                continue;
-            }
-
-            $className = $this->namespace . '\\' . pathinfo($file, PATHINFO_FILENAME);
+            $relativePath = str_replace([$this->directory . DIRECTORY_SEPARATOR, '.php'], '', $file);
+            $relativePath = str_replace(DIRECTORY_SEPARATOR, '\\', $relativePath);
+            $className = $this->namespace . '\\' . $relativePath;
 
             if (!class_exists($className)) {
                 if (file_exists($file)) {
@@ -88,10 +89,26 @@ class ClassLoader {
                 $this->logError("Fehler beim Verarbeiten der Klasse $className: " . $e->getMessage());
             }
         }
+    }
 
-        if (empty($this->classes)) {
-            $this->logWarning("Keine passenden Klassen im Verzeichnis $this->directory gefunden.");
+    /**
+     * **NEU:** Rekursive Suche nach PHP-Dateien
+     *
+     * @param string $directory Das Verzeichnis, das rekursiv nach PHP-Dateien durchsucht wird.
+     * @return array Liste der gefundenen PHP-Dateien
+     */
+    private function getPhpFilesRecursive(string $directory): array {
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
+
+        /** @var SplFileInfo $file */
+        foreach ($iterator as $file) {
+            if ($file->isFile() && strtolower($file->getExtension()) === 'php') {
+                $files[] = $file->getRealPath();
+            }
         }
+
+        return $files;
     }
 
     /**
