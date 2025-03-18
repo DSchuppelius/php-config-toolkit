@@ -111,8 +111,7 @@ class ClassLoader {
 
     private function getClassNameFromFile(string $file): string {
         // Relativen Pfad zum Basispfad berechnen
-        $relativePath = substr($file, strlen($this->directory) + 1, -4); // Entfernt das .php
-
+        $relativePath = str_replace([$this->directory . DIRECTORY_SEPARATOR, '.php'], '', $file);
         // Standardisiere die Trennzeichen für den Namespace
         $relativePath = str_replace(['/', '\\'], '\\', $relativePath);
 
