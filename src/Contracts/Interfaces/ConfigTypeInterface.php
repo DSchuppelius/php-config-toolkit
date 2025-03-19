@@ -6,6 +6,6 @@ namespace ConfigToolkit\Contracts\Interfaces;
 
 interface ConfigTypeInterface {
     public function parse(array $data): array;
-    public function matches(array $data): bool;
+    public static function matches(array $data): bool;
     public function validate(array $data): array;
 }

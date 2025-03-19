@@ -20,6 +20,6 @@ abstract class ConfigTypeAbstract implements ConfigTypeInterface {
     }
 
     abstract public function parse(array $data): array;
-    abstract public function matches(array $data): bool;
+    abstract public static function matches(array $data): bool;
     abstract public function validate(array $data): array;
 }

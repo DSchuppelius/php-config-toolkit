@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace ConfigToolkit;
 
+use ERRORToolkit\Exceptions\FileSystem\FolderNotFoundException;
 use ERRORToolkit\Traits\ErrorLog;
 use ReflectionClass;
 use Exception;
@@ -43,7 +44,7 @@ class ClassLoader {
 
         if (!is_dir($this->directory)) {
             $this->logError("Verzeichnis nicht gefunden: $this->directory");
-            throw new Exception("Das Verzeichnis für Klassen konnte nicht aufgelöst werden: $this->directory");
+            throw new FolderNotFoundException("Das Verzeichnis für Klassen konnte nicht aufgelöst werden: $this->directory");
         }
 
         $this->classes = [];
@@ -74,9 +75,7 @@ class ClassLoader {
                 if (!$reflectionClass->isInstantiable()) {
                     $this->logWarning("Klasse ist nicht instanziierbar (z.B. abstrakt): $className");
                     continue;
-                }
-
-                if (!$reflectionClass->implementsInterface($this->interface)) {
+                } elseif (!$reflectionClass->implementsInterface($this->interface)) {
                     $this->logWarning("Klasse implementiert nicht das Interface $this->interface: $className");
                     continue;
                 }

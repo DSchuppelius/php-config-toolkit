@@ -47,7 +47,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         return $parsed;
     }
 
-    public function matches(array $data): bool {
+    public static function matches(array $data): bool {
         foreach ($data as $section) {
             if (!is_array($section)) {
                 continue;

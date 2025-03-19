@@ -11,7 +11,7 @@ class SubValidClass implements ConfigTypeInterface {
         return ["id" => "54321", "reversdata" => "cba"];
     }
 
-    public function matches(array $data): bool {
+    public static function matches(array $data): bool {
         return true;
     }
 

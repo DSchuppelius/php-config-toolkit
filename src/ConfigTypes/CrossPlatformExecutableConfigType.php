@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace ConfigToolkit\ConfigTypes;
 
 class CrossPlatformExecutableConfigType extends ExecutableConfigType {
-    public function matches(array $data): bool {
+    public static function matches(array $data): bool {
         $hasCrossPlatformEntry = false;
 
         foreach ($data as $section) {

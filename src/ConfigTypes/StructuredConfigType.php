@@ -26,14 +26,14 @@ class StructuredConfigType extends ConfigTypeAbstract {
         return $parsed;
     }
 
-    public function matches(array $data): bool {
-        if ((new PostmanConfigType())->matches($data)) {
+    public static function matches(array $data): bool {
+        if (PostmanConfigType::matches($data)) {
             return false;
-        } else if ((new AdvancedStructuredConfigType())->matches($data)) {
+        } else if (AdvancedStructuredConfigType::matches($data)) {
             return false;
         }
 
-        return array_reduce($data, fn($carry, $section) => $carry || $this->hasKeyValueStructure($section), false);
+        return array_reduce($data, fn($carry, $section) => $carry || static::hasKeyValueStructure($section), false);
     }
 
     public function validate(array $data): array {
@@ -56,7 +56,7 @@ class StructuredConfigType extends ConfigTypeAbstract {
         return $errors;
     }
 
-    protected function hasKeyValueStructure(mixed $items): bool {
+    protected static function hasKeyValueStructure(mixed $items): bool {
         return is_array($items) && count($items) > 0 && array_reduce($items, fn($carry, $item) => $carry && is_array($item) && isset($item['key'], $item['value']) && is_string($item['key']), true);
     }
 }

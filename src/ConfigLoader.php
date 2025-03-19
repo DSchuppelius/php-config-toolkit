@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace ConfigToolkit;
 
-use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
 use ERRORToolkit\Traits\ErrorLog;
 use Exception;
@@ -27,7 +26,6 @@ class ConfigLoader {
     protected array $filePaths = [];
     protected array $loadedFiles = []; // Speichert bereits geladene Konfigurationsdateien
     protected ClassLoader $classLoader;
-    protected ?ConfigTypeInterface $configType = null;
 
     protected static string $configTypesDirectory = __DIR__ . DIRECTORY_SEPARATOR . 'ConfigTypes';
     protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
@@ -89,13 +87,13 @@ class ConfigLoader {
         }
 
         try {
-            $this->configType = $this->detectConfigType($data);
-            $parsedConfig = $this->configType->parse($data);
+            $configType = $this->detectConfigType($data);
+            $parsedConfig = $configType->parse($data);
 
             // Merge der Konfiguration, spätere Dateien überschreiben frühere
             $this->config = array_replace_recursive($this->config, $parsedConfig);
             $this->loadedFiles[] = $realPath; // Speichert die Datei als geladen
-            $this->logInfo("Konfigurationsdatei: $realPath, mit Typ: " . get_class($this->configType) . " geladen");
+            $this->logInfo("Konfigurationsdatei: $realPath, mit Typ: " . get_class($configType) . " geladen");
         } catch (Exception $e) {
             $this->logError("Fehler beim Laden der Konfigurationsdatei $realPath: " . $e->getMessage());
             if ($throwException) {
@@ -122,11 +120,10 @@ class ConfigLoader {
     /**
      * Erkennt den passenden Konfigurationstyp, indem alle registrierten Klassen geprüft werden.
      */
-    protected function detectConfigType(array $data): ConfigTypeAbstract {
+    protected function detectConfigType(array $data): ConfigTypeInterface {
         foreach ($this->classLoader->getClasses() as $class) {
-            $instance = new $class();
-            if ($instance->matches($data)) {
-                return $instance;
+            if ($class::matches($data)) {
+                return new $class();
             }
         }
         $this->logError("Unbekannter Konfigurationstyp in der aktuellen Datei");

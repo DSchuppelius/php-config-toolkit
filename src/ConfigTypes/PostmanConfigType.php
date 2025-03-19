@@ -19,7 +19,7 @@ class PostmanConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob die gegebene Konfiguration dem Postman-Format entspricht.
      */
-    public function matches(array $data): bool {
+    public static function matches(array $data): bool {
         return isset($data['id'], $data['name'], $data['values']) && is_array($data['values']);
     }
 

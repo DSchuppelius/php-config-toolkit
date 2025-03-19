@@ -11,7 +11,7 @@ class ValidClass implements ConfigTypeInterface {
         return ["id" => "12345", "data" => "abc"];
     }
 
-    public function matches(array $data): bool {
+    public static function matches(array $data): bool {
         return true;
     }
 
