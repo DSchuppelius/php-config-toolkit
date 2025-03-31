@@ -120,6 +120,6 @@ class ConfigLoaderTest extends TestCase {
         } else {
             $this->assertSame('/usr/bin/vi', $convertedCommand['path']);
         }
-        $this->assertSame(["'/tmp/input.jpg'", "/tmp/output.png"], $convertedCommand["arguments"]);
+        $this->assertSame(["'/tmp/input.jpg'", "/tmp/output.png", "--verbose"], $convertedCommand["arguments"]);
     }
 }

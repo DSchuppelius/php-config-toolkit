@@ -16,8 +16,8 @@
             "windowsPath": "notepad",
             "required": true,
             "description": "Mail User Agent",
-            "windowsArguments": ["'[INPUT]'", "[OUTPUT]"],
-            "linuxArguments": ["'[INPUT]'", "[OUTPUT]"],
+            "windowsArguments": ["'[INPUT]'", "[OUTPUT]", "--verbose"],
+            "linuxArguments": ["'[INPUT]'", "[OUTPUT]", "--verbose"],
             "windowsDebugArguments": ["'[INPUT]'"],
             "linuxDebugArguments": ["'[INPUT]'"]
         },
