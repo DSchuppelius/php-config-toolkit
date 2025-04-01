@@ -30,9 +30,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $executablePath = $this->getExecutablePath($executable);
                 $arguments = $this->getArguments($executable);
                 $debugArguments = $this->getDebugArguments($executable);
+                $files2Check = $this->getFiles2Check($executable);
+                $allFilesOk = $this->checkRequiredFiles($files2Check);
 
                 if (empty($executablePath) && ($executable['required'] ?? false)) {
                     throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}'");
+                } elseif (!$allFilesOk && ($executable['required'] ?? false)) {
+                    throw new Exception("Erforderliche Zusatzdateien fehlen für '{$name}' in '{$category}'.");
                 }
 
                 $parsed[$category][$name] = [
@@ -64,6 +68,15 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         return true;
     }
 
+    protected function checkRequiredFiles(array $paths): bool {
+        foreach ($paths as $path) {
+            if (!file_exists($path) && !is_link($path) && !is_readable($path)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public function validate(array $data): array {
         $errors = [];
 
@@ -79,6 +92,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 }
                 if (!isset($executable['debugArguments']) || !is_array($executable['debugArguments'])) {
                     $errors[] = "Ungültige oder fehlende 'debugArguments' für '{$name}' in '{$category}'.";
+                }
+                if (!empty($executable['files2Check']) && is_array($executable['files2Check'])) {
+                    foreach ($executable['files2Check'] as $file) {
+                        if (!file_exists($file) && !is_link($file) && !is_readable($file)) {
+                            $errors[] = "Datei fehlt bzw. steht nicht bereit für '{$name}' in '{$category}': $file";
+                        }
+                    }
                 }
             }
         }
@@ -103,6 +123,10 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     protected function getExecutablePath(array $executable): ?string {
         $path = $executable['path'] ?? null;
         return $this->findExecutablePath($path);
+    }
+
+    protected function getFiles2Check(array $executable): array {
+        return $executable['files2Check'] ?? [];
     }
 
     /**

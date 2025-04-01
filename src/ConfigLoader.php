@@ -195,7 +195,7 @@ class ConfigLoader {
     public function reload(): void {
         $this->config = [];
         $this->loadedFiles = []; // Setzt die geladenen Dateien zurück
-        $this->loadConfigFiles($this->filePaths, true);
+        $this->loadConfigFiles($this->filePaths, true, true);
     }
 
     public static function resetInstance(): void {

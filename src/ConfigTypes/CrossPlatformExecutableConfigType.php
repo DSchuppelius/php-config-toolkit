@@ -46,6 +46,17 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
         return $hasCrossPlatformEntry; // True, wenn mindestens ein `windowsPath` & `linuxPath` existiert
     }
 
+    protected function getFiles2Check(array $executable): array {
+        if ($this->isWindows && isset($executable['windowsFiles2Check'])) {
+            return $executable['windowsFiles2Check'];
+        }
+
+        if (!$this->isWindows && isset($executable['linuxFiles2Check'])) {
+            return $executable['linuxFiles2Check'];
+        }
+
+        return $executable['files2Check'] ?? [];
+    }
 
     /**
      * Gibt den richtigen Pfad für das ausführbare Programm basierend auf dem OS zurück
