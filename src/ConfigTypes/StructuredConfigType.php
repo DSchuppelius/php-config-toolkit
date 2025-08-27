@@ -11,16 +11,20 @@ class StructuredConfigType extends ConfigTypeAbstract {
     public function parse(array $data): array {
         $parsed = [];
         foreach ($data as $section => $items) {
-            foreach ($items as $item) {
-                if (!($item['enabled'] ?? true)) {
-                    continue;
-                }
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    if (!($item['enabled'] ?? true)) {
+                        continue;
+                    }
 
-                if (!isset($item['key'])) {
-                    throw new Exception("Fehlender 'key' in '{$section}'.");
-                }
+                    if (!isset($item['key'])) {
+                        throw new Exception("Fehlender 'key' in '{$section}'.");
+                    }
 
-                $parsed[$section][$item['key']] = $this->castValue($item['value'] ?? null, $item['type'] ?? 'text');
+                    $parsed[$section][$item['key']] = $this->castValue($item['value'] ?? null, $item['type'] ?? 'text');
+                }
+            } else {
+                $parsed[$section] = $this->castValue($items, 'text');
             }
         }
         return $parsed;
