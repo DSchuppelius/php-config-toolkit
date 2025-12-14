@@ -411,3 +411,6 @@ phpunit.xml
 
 # Schuppe
 /config/config.json
+/.buildpath
+/.project
+/.settings/

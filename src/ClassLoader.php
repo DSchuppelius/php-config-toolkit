@@ -57,6 +57,7 @@ class ClassLoader {
 
         foreach ($files as $file) {
             $className = $this->getClassNameFromFile($file);
+            $this->logDebug("Verarbeite Datei: $file => Klasse: $className");
 
             if (!class_exists($className)) {
                 if (file_exists($file)) {
