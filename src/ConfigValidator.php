@@ -17,7 +17,14 @@ use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
 use Exception;
 use ReflectionClass;
 
+/**
+ * Statische Klasse zur Validierung von JSON-Konfigurationsdateien.
+ * Erkennt automatisch den passenden ConfigType und führt dessen Validierung aus.
+ */
 class ConfigValidator {
+    /**
+     * Cache für geladene ConfigType-Klassen.
+     */
     protected static array $configTypeClasses = [];
 
     /**
@@ -72,9 +79,9 @@ class ConfigValidator {
             $reflection = new ReflectionClass($class);
 
             if (!$reflection->isAbstract() && $reflection->implementsInterface(ConfigTypeInterface::class)) {
-                $instance = $reflection->newInstance();
-                if ($instance->matches($data)) {
-                    return $instance;
+                // matches() ist statisch, daher statisch aufrufen
+                if ($class::matches($data)) {
+                    return $reflection->newInstance();
                 }
             }
         }

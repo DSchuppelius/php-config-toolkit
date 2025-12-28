@@ -12,8 +12,20 @@ declare(strict_types=1);
 
 namespace ConfigToolkit\ConfigTypes;
 
+/**
+ * ConfigType für plattformübergreifende ausführbare Programme.
+ * Unterstützt separate Pfade und Argumente für Windows und Linux.
+ */
 class CrossPlatformExecutableConfigType extends ExecutableConfigType {
+    /**
+     * Prüft, ob die Konfiguration plattformspezifische Pfade enthält.
+     * Erfordert mindestens einen Eintrag mit windowsPath UND linuxPath.
+     */
     public static function matches(array $data): bool {
+        if (empty($data)) {
+            return false;
+        }
+
         $hasCrossPlatformEntry = false;
 
         foreach ($data as $section) {
@@ -21,7 +33,11 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
                 continue;
             }
 
-            foreach ($section as $key => $value) {
+            foreach ($section as $value) {
+                if (!is_array($value)) {
+                    return false;
+                }
+
                 $hasWindowsPath = isset($value['windowsPath']);
                 $hasLinuxPath = isset($value['linuxPath']);
                 $hasGenericPath = isset($value['path']);
@@ -43,16 +59,17 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
             }
         }
 
-        return $hasCrossPlatformEntry; // True, wenn mindestens ein `windowsPath` & `linuxPath` existiert
+        return $hasCrossPlatformEntry;
     }
 
+    /**
+     * Gibt die zu prüfenden Dateien basierend auf dem aktuellen OS zurück.
+     */
     protected function getFiles2Check(array $executable): array {
-        if ($this->isWindows && isset($executable['windowsFiles2Check'])) {
-            return $executable['windowsFiles2Check'];
-        }
+        $platformKey = $this->isWindows ? 'windowsFiles2Check' : 'linuxFiles2Check';
 
-        if (!$this->isWindows && isset($executable['linuxFiles2Check'])) {
-            return $executable['linuxFiles2Check'];
+        if (isset($executable[$platformKey]) && is_array($executable[$platformKey])) {
+            return $executable[$platformKey];
         }
 
         return $executable['files2Check'] ?? [];

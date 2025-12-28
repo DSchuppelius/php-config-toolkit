@@ -15,11 +15,15 @@ namespace ConfigToolkit\ConfigTypes;
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use Exception;
 
+/**
+ * ConfigType für ausführbare Programme mit Pfaden und Argumenten.
+ * Unterstützt Pfadvalidierung und automatische Suche im System-PATH.
+ */
 class ExecutableConfigType extends ConfigTypeAbstract {
     protected bool $isWindows;
 
     public function __construct() {
-        $this->isWindows = strtolower(PHP_OS_FAMILY) === "windows"; // Windows oder Linux
+        $this->isWindows = strtolower(PHP_OS_FAMILY) === 'windows';
     }
 
     public function parse(array $data): array {
@@ -51,57 +55,98 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         return $parsed;
     }
 
+    /**
+     * Prüft, ob die Konfiguration dem ExecutableConfigType-Format entspricht.
+     * Erfordert 'path' und verbietet plattformspezifische Pfade.
+     */
     public static function matches(array $data): bool {
+        if (empty($data)) {
+            return false;
+        }
+
+        $hasValidExecutable = false;
+
         foreach ($data as $section) {
             if (!is_array($section)) {
                 continue;
             }
-            foreach ($section as $key => $value) {
+
+            foreach ($section as $value) {
+                if (!is_array($value)) {
+                    return false;
+                }
+
                 if (!isset($value['path'])) {
                     return false; // `path` MUSS existieren
                 }
+
                 if (isset($value['windowsPath']) || isset($value['linuxPath'])) {
                     return false; // Kein `windowsPath` oder `linuxPath` erlaubt
                 }
+
+                $hasValidExecutable = true;
             }
         }
-        return true;
+
+        return $hasValidExecutable;
     }
 
+    /**
+     * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
+     */
     protected function checkRequiredFiles(array $paths): bool {
         foreach ($paths as $path) {
-            if (!file_exists($path) && !is_link($path) && !is_readable($path)) {
+            // Eine der Bedingungen muss erfüllt sein
+            if (!file_exists($path) && !is_link($path)) {
                 return false;
             }
         }
         return true;
     }
 
+    /**
+     * Validiert die Executable-Konfiguration.
+     *
+     * @return array Liste der gefundenen Validierungsfehler.
+     */
     public function validate(array $data): array {
         $errors = [];
 
         foreach ($data as $category => $executables) {
+            if (!is_array($executables)) {
+                $errors[] = "Kategorie '{$category}' muss ein Array sein.";
+                continue;
+            }
+
             foreach ($executables as $name => $executable) {
+                if (!is_array($executable)) {
+                    $errors[] = "Executable '{$name}' in '{$category}' muss ein Array sein.";
+                    continue;
+                }
+
                 $path = $this->getExecutablePath($executable);
 
                 if ($path === null && ($executable['required'] ?? false)) {
                     $errors[] = "Kein ausführbarer Pfad für '{$name}' in '{$category}'.";
                 }
-                if (!isset($executable['arguments']) || !is_array($executable['arguments'])) {
-                    $errors[] = "Ungültige oder fehlende 'arguments' für '{$name}' in '{$category}'.";
+
+                if (isset($executable['arguments']) && !is_array($executable['arguments'])) {
+                    $errors[] = "Ungültige 'arguments' für '{$name}' in '{$category}' - muss ein Array sein.";
                 }
-                if (!isset($executable['debugArguments']) || !is_array($executable['debugArguments'])) {
-                    $errors[] = "Ungültige oder fehlende 'debugArguments' für '{$name}' in '{$category}'.";
+
+                if (isset($executable['debugArguments']) && !is_array($executable['debugArguments'])) {
+                    $errors[] = "Ungültige 'debugArguments' für '{$name}' in '{$category}' - muss ein Array sein.";
                 }
-                if (!empty($executable['files2Check']) && is_array($executable['files2Check'])) {
-                    foreach ($executable['files2Check'] as $file) {
-                        if (!file_exists($file) && !is_link($file) && !is_readable($file)) {
-                            $errors[] = "Datei fehlt bzw. steht nicht bereit für '{$name}' in '{$category}': $file";
-                        }
+
+                $files2Check = $this->getFiles2Check($executable);
+                foreach ($files2Check as $file) {
+                    if (!file_exists($file) && !is_link($file)) {
+                        $errors[] = "Datei fehlt für '{$name}' in '{$category}': {$file}";
                     }
                 }
             }
         }
+
         return $errors;
     }
 

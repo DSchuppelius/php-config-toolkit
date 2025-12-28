@@ -7,12 +7,27 @@ namespace ConfigToolkit\ConfigTypes;
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use Exception;
 
+/**
+ * ConfigType für strukturierte Konfigurationen mit key/value/enabled-Einträgen.
+ * Dies ist der Fallback-Typ für Standard-Konfigurationsstrukturen.
+ */
 class StructuredConfigType extends ConfigTypeAbstract {
+    /**
+     * Parst die strukturierte Konfiguration in ein nutzbares Array.
+     *
+     * @throws Exception Wenn ein erforderlicher 'key' fehlt.
+     */
     public function parse(array $data): array {
         $parsed = [];
+
         foreach ($data as $section => $items) {
             if (is_array($items)) {
                 foreach ($items as $item) {
+                    if (!is_array($item)) {
+                        // Skalare Werte direkt übernehmen
+                        continue;
+                    }
+
                     if (!($item['enabled'] ?? true)) {
                         continue;
                     }
@@ -27,24 +42,58 @@ class StructuredConfigType extends ConfigTypeAbstract {
                 $parsed[$section] = $this->castValue($items, 'text');
             }
         }
+
         return $parsed;
     }
 
+    /**
+     * Prüft, ob dieser ConfigType zur gegebenen Konfiguration passt.
+     * Dieser Typ ist der Fallback und wird nur gewählt, wenn kein spezifischerer Typ passt.
+     */
     public static function matches(array $data): bool {
-        if (PostmanConfigType::matches($data)) {
-            return false;
-        } else if (AdvancedStructuredConfigType::matches($data)) {
+        if (empty($data)) {
             return false;
         }
 
-        return array_reduce($data, fn($carry, $section) => $carry || static::hasKeyValueStructure($section), false);
+        // Spezifischere Typen haben Vorrang
+        if (PostmanConfigType::matches($data)) {
+            return false;
+        }
+
+        if (AdvancedStructuredConfigType::matches($data)) {
+            return false;
+        }
+
+        // Mindestens eine Sektion muss Key-Value-Struktur haben
+        foreach ($data as $section) {
+            if (static::hasKeyValueStructure($section)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
+    /**
+     * Validiert die strukturierte Konfiguration.
+     *
+     * @return array Liste der gefundenen Validierungsfehler.
+     */
     public function validate(array $data): array {
         $errors = [];
 
         foreach ($data as $section => $items) {
+            if (!is_array($items)) {
+                $errors[] = "Sektion '{$section}' muss ein Array sein.";
+                continue;
+            }
+
             foreach ($items as $index => $item) {
+                if (!is_array($item)) {
+                    $errors[] = "Eintrag an Index {$index} in '{$section}' muss ein Array sein.";
+                    continue;
+                }
+
                 if (!isset($item['key']) || !is_string($item['key'])) {
                     $errors[] = "Fehlender oder ungültiger 'key' in '{$section}' an Index {$index}.";
                 }
@@ -60,7 +109,21 @@ class StructuredConfigType extends ConfigTypeAbstract {
         return $errors;
     }
 
+    /**
+     * Prüft, ob ein Array die erwartete Key-Value-Struktur hat.
+     * Erwartet: Array von Objekten mit 'key' (string) und 'value' Eigenschaften.
+     */
     protected static function hasKeyValueStructure(mixed $items): bool {
-        return is_array($items) && count($items) > 0 && array_reduce($items, fn($carry, $item) => $carry && is_array($item) && isset($item['key'], $item['value']) && is_string($item['key']), true);
+        if (!is_array($items) || empty($items)) {
+            return false;
+        }
+
+        foreach ($items as $item) {
+            if (!is_array($item) || !isset($item['key'], $item['value']) || !is_string($item['key'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -17,6 +17,10 @@ use ERRORToolkit\Traits\ErrorLog;
 use Exception;
 use Psr\Log\LoggerInterface;
 
+/**
+ * Singleton-Klasse zum Laden und Verwalten von JSON-Konfigurationsdateien.
+ * Unterstützt automatische Typ-Erkennung durch das Plugin-System.
+ */
 class ConfigLoader {
     use ErrorLog;
 
@@ -84,6 +88,7 @@ class ConfigLoader {
             if ($throwException) {
                 throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             }
+            return false;
         }
 
         try {
@@ -198,6 +203,9 @@ class ConfigLoader {
         $this->loadConfigFiles($this->filePaths, true, true);
     }
 
+    /**
+     * Setzt die Singleton-Instanz zurück (hauptsächlich für Tests).
+     */
     public static function resetInstance(): void {
         self::$instance = null;
     }

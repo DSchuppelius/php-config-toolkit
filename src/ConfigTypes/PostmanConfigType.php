@@ -15,12 +15,24 @@ namespace ConfigToolkit\ConfigTypes;
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use Exception;
 
+/**
+ * ConfigType für Postman-Umgebungs-Konfigurationen.
+ * Unterstützt das Standard-Postman-Export-Format mit id, name und values.
+ */
 class PostmanConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob die gegebene Konfiguration dem Postman-Format entspricht.
+     * Erfordert 'id', 'name' und 'values' als Array.
      */
     public static function matches(array $data): bool {
-        return isset($data['id'], $data['name'], $data['values']) && is_array($data['values']);
+        if (empty($data)) {
+            return false;
+        }
+
+        return isset($data['id'], $data['name'], $data['values'])
+            && is_string($data['id'])
+            && is_string($data['name'])
+            && is_array($data['values']);
     }
 
     /**

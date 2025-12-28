@@ -21,13 +21,23 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
+/**
+ * Dynamischer Klassenlader für das Plugin-System.
+ * Lädt automatisch alle Klassen aus einem Verzeichnis, die ein bestimmtes Interface implementieren.
+ */
 class ClassLoader {
     use ErrorLog;
 
+    /** @var string Absoluter Pfad zum Verzeichnis mit den Klassen. */
     private string $directory;
+
+    /** @var string Basis-Namespace für die Klassen. */
     private string $namespace;
+
+    /** @var string Vollqualifizierter Name des erforderlichen Interfaces. */
     private string $interface;
 
+    /** @var array<class-string> Liste der geladenen Klassennamen. */
     private array $classes = [];
 
     public function __construct(string $directory, string $namespace, string $interface, ?LoggerInterface $logger = null) {
@@ -39,6 +49,12 @@ class ClassLoader {
         $this->reloadClasses();
     }
 
+    /**
+     * Lädt alle Klassen aus dem konfigurierten Verzeichnis neu.
+     * Löscht zuerst den Cache und scannt dann das Verzeichnis erneut.
+     *
+     * @throws FolderNotFoundException Wenn das Verzeichnis nicht existiert.
+     */
     public function reloadClasses(): void {
         $this->logInfo("Lade Klassen aus Verzeichnis: $this->directory mit Namespace: $this->namespace");
 
@@ -109,6 +125,12 @@ class ClassLoader {
         return $files;
     }
 
+    /**
+     * Ermittelt den vollqualifizierten Klassennamen aus einem Dateipfad.
+     *
+     * @param string $file Absoluter Pfad zur PHP-Datei.
+     * @return string Vollqualifizierter Klassenname.
+     */
     private function getClassNameFromFile(string $file): string {
         // Relativen Pfad zum Basispfad berechnen
         $relativePath = str_replace([$this->directory . DIRECTORY_SEPARATOR, '.php'], '', $file);
