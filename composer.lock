@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "673ebc5d2197682b0e3ba9a2254cfeb7",
+    "content-hash": "566f7d2cb882b56f167a5cb893c76d08",
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
@@ -1879,7 +1879,7 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=8.0"
+        "php": ">=8.2 <8.5"
     },
     "platform-dev": [],
     "plugin-api-version": "2.6.0"
