@@ -36,5 +36,5 @@
             "arguments": ["--version"],
             "debugArguments": ["--version"]
         }
-    },
+    }
 }
