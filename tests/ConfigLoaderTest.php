@@ -8,7 +8,6 @@ use ConfigToolkit\ConfigLoader;
 use ERRORToolkit\Factories\ConsoleLoggerFactory;
 use Exception;
 use PHPUnit\Framework\TestCase;
-use SebastianBergmann\Environment\Console;
 
 class ConfigLoaderTest extends TestCase {
     private string $validConfigPath;
