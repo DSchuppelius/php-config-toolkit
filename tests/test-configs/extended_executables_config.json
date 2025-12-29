@@ -1,0 +1,40 @@
+{
+    "shellExecutables": {
+        "ping": {
+            "path": "ping",
+            "required": true,
+            "description": "Network ping utility",
+            "arguments": ["-c", "1"],
+            "debugArguments": ["-c", "1", "-v"]
+        },
+        "cmd": {
+            "path": "cmd.exe",
+            "required": false,
+            "description": "Windows command processor",
+            "arguments": ["/c", "echo", "test"],
+            "debugArguments": ["/c", "echo", "test"]
+        },
+        "nonexistent": {
+            "path": "this-tool-does-not-exist",
+            "required": false,
+            "description": "Tool that should not be found"
+        }
+    },
+    "developmentTools": {
+        "java": {
+            "path": "java",
+            "required": false,
+            "description": "Java Runtime Environment",
+            "arguments": ["-version"],
+            "debugArguments": ["-version", "-verbose"],
+            "files2Check": []
+        },
+        "node": {
+            "path": "node",
+            "required": false,
+            "description": "Node.js JavaScript runtime",
+            "arguments": ["--version"],
+            "debugArguments": ["--version"]
+        }
+    },
+}

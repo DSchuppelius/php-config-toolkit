@@ -17,6 +17,7 @@ class ConfigLoaderTest extends TestCase {
     private string $advancedConfigPath;
     private string $executablesConfigPath;
     private string $crossPlatformExecutablesConfigPath;
+    private string $extendedExecutablesConfigPath;
 
     protected function setUp(): void {
         $this->validConfigPath = __DIR__ . '/test-configs/valid_config.json';
@@ -25,6 +26,7 @@ class ConfigLoaderTest extends TestCase {
         $this->advancedConfigPath = __DIR__ . '/test-configs/advancedvalid_config.json';
         $this->executablesConfigPath = __DIR__ . '/test-configs/executables_config.json';
         $this->crossPlatformExecutablesConfigPath = __DIR__ . '/test-configs/cross_platform_executables_config.json';
+        $this->extendedExecutablesConfigPath = __DIR__ . '/test-configs/extended_executables_config.json';
     }
 
     public function testCanLoadValidConfig(): void {
@@ -121,5 +123,97 @@ class ConfigLoaderTest extends TestCase {
             $this->assertSame('/usr/bin/vi', $convertedCommand['path']);
         }
         $this->assertSame(["'/tmp/input.jpg'", "/tmp/output.png", "--verbose"], $convertedCommand["arguments"]);
+    }
+
+    /**
+     * Testet die erweiterte Executable-Suche in klassischen Windows-Ordnern
+     */
+    public function testExtendedExecutablesConfig(): void {
+        $config = ConfigLoader::getInstance();
+        $config->loadConfigFile($this->extendedExecutablesConfigPath);
+
+        // Teste ping (sollte immer gefunden werden)
+        $ping = $config->get('shellExecutables', 'ping');
+        $this->assertIsArray($ping);
+        $this->assertNotNull($ping['path']);
+        $this->assertTrue($ping['required']);
+
+        // Teste cmd auf Windows
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = $config->get('shellExecutables', 'cmd');
+            $this->assertIsArray($cmd);
+            // cmd sollte auf Windows immer gefunden werden
+            if ($cmd['path'] !== null) {
+                $this->assertStringContainsString('cmd', strtolower($cmd['path']));
+            }
+        }
+
+        // Teste Development Tools
+        $developmentTools = $config->get('developmentTools');
+        $this->assertIsArray($developmentTools);
+
+        if (isset($developmentTools['java'])) {
+            $java = $developmentTools['java'];
+            if ($java['path'] !== null) {
+                $this->assertSame(['-version'], $java['arguments']);
+                $this->assertSame(['-version', '-verbose'], $java['debugArguments']);
+            }
+        }
+    }
+
+    /**
+     * Testet die Behandlung nicht existierender Executables
+     */
+    public function testNonExistentExecutables(): void {
+        $config = ConfigLoader::getInstance();
+        $config->loadConfigFile($this->extendedExecutablesConfigPath);
+
+        $nonexistent = $config->get('shellExecutables', 'nonexistent');
+        $this->assertIsArray($nonexistent);
+        $this->assertNull($nonexistent['path']); // Sollte nicht gefunden werden
+        $this->assertFalse($nonexistent['required']); // Daher keine Exception
+    }
+
+    /**
+     * Testet die files2Check Funktionalität mit einem separaten Test
+     */
+    public function testFiles2CheckFunctionality(): void {
+        // Erstelle temporäre Testdateien für files2Check Test
+        $tempFile1 = tempnam(sys_get_temp_dir(), 'test_file_1_');
+        $tempFile2 = tempnam(sys_get_temp_dir(), 'test_file_2_');
+
+        $testConfig = [
+            'testTools' => [
+                'toolWithFiles' => [
+                    'path' => 'ping',
+                    'required' => false,
+                    'files2Check' => [$tempFile1, $tempFile2]
+                ]
+            ]
+        ];
+
+        $configType = new \ConfigToolkit\ConfigTypes\ExecutableConfigType();
+        $result = $configType->parse($testConfig);
+
+        $this->assertIsArray($result['testTools']['toolWithFiles']);
+        $this->assertNotNull($result['testTools']['toolWithFiles']['path']);
+
+        // Aufräumen
+        unlink($tempFile1);
+        unlink($tempFile2);
+    }
+
+    /**
+     * Testet die Validierung von Executable-Konfigurationen
+     */
+    public function testExecutableValidation(): void {
+        $config = ConfigLoader::getInstance();
+
+        // Dies sollte ohne Fehler laden
+        $config->loadConfigFile($this->extendedExecutablesConfigPath);
+
+        // Teste dass alle erwarteten Sectionen vorhanden sind
+        $this->assertIsArray($config->get('shellExecutables'));
+        $this->assertIsArray($config->get('developmentTools'));
     }
 }
