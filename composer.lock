@@ -4,24 +4,24 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "566f7d2cb882b56f167a5cb893c76d08",
+    "content-hash": "ad2163f602606661a673bb1bab464cf8",
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
-            "version": "v1.3.5",
+            "version": "v1.3.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DSchuppelius/php-error-toolkit.git",
-                "reference": "ff1b971ab937d4fb79075c6cbb7194b47bf32b4b"
+                "reference": "7a273f8b7d38e52ec3a627347bffeef4f6f521bb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/ff1b971ab937d4fb79075c6cbb7194b47bf32b4b",
-                "reference": "ff1b971ab937d4fb79075c6cbb7194b47bf32b4b",
+                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/7a273f8b7d38e52ec3a627347bffeef4f6f521bb",
+                "reference": "7a273f8b7d38e52ec3a627347bffeef4f6f521bb",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.2 || ^8.3",
+                "php": ">=8.2 <8.5",
                 "psr/log": "^3.0@dev"
             },
             "require-dev": {
@@ -46,9 +46,9 @@
             "description": "Reused codes for my api php sdks",
             "support": {
                 "issues": "https://github.com/DSchuppelius/php-error-toolkit/issues",
-                "source": "https://github.com/DSchuppelius/php-error-toolkit/tree/v1.3.5"
+                "source": "https://github.com/DSchuppelius/php-error-toolkit/tree/v1.3.5.2"
             },
-            "time": "2025-12-22T09:34:33+00:00"
+            "time": "2025-12-29T12:23:12+00:00"
         },
         {
             "name": "psr/log",
@@ -1872,7 +1872,7 @@
         }
     ],
     "aliases": [],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "stability-flags": {
         "phpunit/phpunit": 20
     },

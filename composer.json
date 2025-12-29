@@ -9,8 +9,7 @@
             "email": "info@schuppelius.org"
         }
     ],
-    "minimum-stability": "dev",
-    "prefer-stable": true,    
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "ConfigToolkit\\": "src/"
@@ -26,7 +25,6 @@
     },
     "require": {
         "php": ">=8.2 <8.5",
-        "psr/log": "^3.0",
         "dschuppelius/php-error-toolkit": "^1.2"
     },
     "scripts": {
