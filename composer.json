@@ -24,7 +24,7 @@
         "phpunit/phpunit": "^11.3@dev"
     },
     "require": {
-        "php": ">=8.2 <8.5",
+        "php": ">=8.0 <8.5",
         "dschuppelius/php-error-toolkit": "^1.2"
     },
     "scripts": {
