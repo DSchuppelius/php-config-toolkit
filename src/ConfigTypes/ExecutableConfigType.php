@@ -213,7 +213,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
         // Finde ausführbaren Pfad in PATH-Umgebung
         $lookupCommand = $this->isWindows ? "where" : "which";
-        exec("$lookupCommand " . escapeshellarg($command) . " 2>nul", $output, $exitCode);
+        $nullDevice = $this->isWindows ? "nul" : "/dev/null";
+        exec("$lookupCommand " . escapeshellarg($command) . " 2>" . $nullDevice, $output, $exitCode);
 
         // Falls mehrere Treffer, teste nur die ersten 3
         $pathsToTest = array_slice($output, 0, 3);
