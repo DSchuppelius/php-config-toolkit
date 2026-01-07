@@ -74,7 +74,7 @@ class ConfigLoaderTest extends TestCase {
 
         $this->assertNotNull($ping);
         if (PHP_OS_FAMILY === 'Windows') {
-            $this->assertSame('C:\Windows\System32\PING.EXE', $ping['path']);
+            $this->assertSame('c:\windows\system32\ping.exe', strtolower($ping['path']));
         } else {
             $this->assertSame('/usr/bin/ping', $ping['path']);
         }
@@ -89,7 +89,7 @@ class ConfigLoaderTest extends TestCase {
 
         $this->assertNotNull($editor);
         if (PHP_OS_FAMILY === 'Windows') {
-            $this->assertSame('C:\Windows\System32\notepad.exe', $editor['path']);
+            $this->assertSame('c:\windows\system32\notepad.exe', strtolower($editor['path']));
         } else {
             $this->assertSame('/usr/bin/vi', $editor['path']);
         }
@@ -117,7 +117,7 @@ class ConfigLoaderTest extends TestCase {
 
         $this->assertNotNull($convertedCommand);
         if (PHP_OS_FAMILY === 'Windows') {
-            $this->assertSame('C:\Windows\System32\notepad.exe', $convertedCommand['path']);
+            $this->assertSame('c:\windows\system32\notepad.exe', strtolower($convertedCommand['path']));
         } else {
             $this->assertSame('/usr/bin/vi', $convertedCommand['path']);
         }
