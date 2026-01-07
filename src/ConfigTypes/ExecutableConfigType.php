@@ -32,28 +32,44 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $parsed = [];
 
         foreach ($data as $category => $executables) {
-            foreach ($executables as $name => $executable) {
-                $executablePath = $this->getExecutablePath($executable);
-                $arguments = $this->getArguments($executable);
-                $debugArguments = $this->getDebugArguments($executable);
-                $files2Check = $this->getFiles2Check($executable);
-                $allFilesOk = $this->checkRequiredFiles($files2Check);
+            if (!is_array($executables)) {
+                continue;
+            }
 
-                if (empty($executablePath) && ($executable['required'] ?? false)) {
+            foreach ($executables as $name => $executable) {
+                if (!is_array($executable)) {
+                    continue;
+                }
+
+                // WICHTIG: required robust normalisieren (bool/int/string)
+                $required = $this->normalizeBool($executable['required'] ?? false);
+
+                $executablePath = $this->getExecutablePath($executable);
+                $arguments      = $this->getArguments($executable);
+                $debugArguments = $this->getDebugArguments($executable);
+                $files2Check    = $this->getFiles2Check($executable);
+                $allFilesOk     = $this->checkRequiredFiles($files2Check);
+
+                if ($required && empty($executablePath)) {
                     throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}'");
-                } elseif (!$allFilesOk && ($executable['required'] ?? false)) {
+                }
+
+                if ($required && !$allFilesOk) {
                     throw new Exception("Erforderliche Zusatzdateien fehlen für '{$name}' in '{$category}'.");
                 }
 
                 $parsed[$category][$name] = [
-                    'path'           => $executablePath,
-                    'required'       => $executable['required'] ?? false,
+                    'path'           => $executablePath, // aufgelöster Pfad oder null
+                    'required'       => $required,
                     'description'    => $executable['description'] ?? '',
                     'arguments'      => $arguments,
                     'debugArguments' => $debugArguments,
+                    'files2Check'    => $files2Check,
+                    'package'        => $executable['package'] ?? null,
                 ];
             }
         }
+
         return $parsed;
     }
 
@@ -94,19 +110,6 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     }
 
     /**
-     * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
-     */
-    protected function checkRequiredFiles(array $paths): bool {
-        foreach ($paths as $path) {
-            // Eine der Bedingungen muss erfüllt sein
-            if (!file_exists($path) && !is_link($path)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
      * Validiert die Executable-Konfiguration.
      *
      * @return array Liste der gefundenen Validierungsfehler.
@@ -126,9 +129,10 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     continue;
                 }
 
-                $path = $this->getExecutablePath($executable);
+                $required = $this->normalizeBool($executable['required'] ?? false);
+                $path     = $this->getExecutablePath($executable);
 
-                if ($path === null && ($executable['required'] ?? false)) {
+                if ($path === null && $required) {
                     $errors[] = "Kein ausführbarer Pfad für '{$name}' in '{$category}'.";
                 }
 
@@ -142,7 +146,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
                 $files2Check = $this->getFiles2Check($executable);
                 foreach ($files2Check as $file) {
-                    if (!file_exists($file) && !is_link($file)) {
+                    if (!$this->isUsableFile((string)$file)) {
                         $errors[] = "Datei fehlt für '{$name}' in '{$category}': {$file}";
                     }
                 }
@@ -150,6 +154,61 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         return $errors;
+    }
+
+    /**
+     * Normalisiert boolsche Konfigwerte robust.
+     * Fix für Fälle wie required="false" (String) => darf nicht truthy werden.
+     */
+    protected function normalizeBool(mixed $value, bool $default = false): bool {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value !== 0;
+        }
+
+        if (is_string($value)) {
+            $b = filter_var(trim($value), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            return $b ?? $default;
+        }
+
+        return $default;
+    }
+
+    /**
+     * Zusatzdatei ist ok, wenn:
+     * - Symlink vorhanden ODER
+     * - Datei existiert (und idealerweise lesbar)
+     */
+    protected function isUsableFile(string $path): bool {
+        if ($path === '') {
+            return false;
+        }
+
+        if (is_link($path)) {
+            return true;
+        }
+
+        if (!file_exists($path)) {
+            return false;
+        }
+
+        // optional härter: in deiner Situation sinnvoll, weil magic-Dateien auch lesbar sein müssen
+        return is_readable($path);
+    }
+
+    /**
+     * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
+     */
+    protected function checkRequiredFiles(array $paths): bool {
+        foreach ($paths as $path) {
+            if (!$this->isUsableFile((string)$path)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -169,31 +228,52 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      */
     protected function getExecutablePath(array $executable): ?string {
         $path = $executable['path'] ?? null;
-        return $this->findExecutablePath($path);
+        if (!is_string($path) || trim($path) === '') {
+            return null;
+        }
+        return $this->findExecutablePath(trim($path));
     }
 
     protected function getFiles2Check(array $executable): array {
-        return $executable['files2Check'] ?? [];
+        return (isset($executable['files2Check']) && is_array($executable['files2Check'])) ? $executable['files2Check'] : [];
     }
 
     /**
      * Gibt die Argumente für das ausführbare Programm zurück.
      */
     protected function getArguments(array $executable): array {
-        return $executable['arguments'] ?? [];
+        return (isset($executable['arguments']) && is_array($executable['arguments'])) ? $executable['arguments'] : [];
     }
 
     /**
      * Gibt die Debug-Argumente für das ausführbare Programm zurück.
      */
     protected function getDebugArguments(array $executable): array {
-        return $executable['debugArguments'] ?? [];
+        return (isset($executable['debugArguments']) && is_array($executable['debugArguments'])) ? $executable['debugArguments'] : [];
+    }
+
+    /**
+     * Prüft ob exec nutzbar ist (shared hosting / hardened php.ini).
+     */
+    protected function canUseExec(): bool {
+        if (!function_exists('exec')) {
+            return false;
+        }
+
+        $disabled = (string)ini_get('disable_functions');
+        if ($disabled === '') {
+            return true;
+        }
+
+        $disabledList = array_map('trim', explode(',', $disabled));
+        return !in_array('exec', $disabledList, true);
     }
 
     /**
      * Sucht eine ausführbare Datei im `PATH`.
-     * Erweitert um automatische Suche in klassischen Windows-Ordnern bei fehlgeschlagener Ausführung.
-     * Optimiert für bessere Performance.
+     * - Erst ohne exec (PATH manuell), damit es auch bei disabled exec funktioniert
+     * - Danach optional which/where
+     * - Windows: optional Common-Path Search
      */
     protected function findExecutablePath(?string $command): ?string {
         if (empty($command)) {
@@ -201,43 +281,93 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         // Prüfen auf absolute UNIX- oder Windows-Pfade
-        $isAbsoluteUnixPath = preg_match('/^\/[^\/]+(\/[^\/]+)+$/', $command);
-        $isAbsoluteWindowsPath = preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
+        $isAbsoluteUnixPath    = (bool)preg_match('/^\//', $command);
+        $isAbsoluteWindowsPath = (bool)preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
 
         if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
             return file_exists($command) ? $command : null;
         }
 
-        $output = [];
-        $exitCode = 0;
+        // 1) PATH-Suche ohne exec (entscheidend für deinen Fall "file" auf Linux)
+        $resolved = $this->resolveFromPath($command);
+        if ($resolved !== null) {
+            return $resolved;
+        }
 
-        // Finde ausführbaren Pfad in PATH-Umgebung
-        $lookupCommand = $this->isWindows ? "where" : "which";
-        $nullDevice = $this->isWindows ? "nul" : "/dev/null";
-        exec("$lookupCommand " . escapeshellarg($command) . " 2>" . $nullDevice, $output, $exitCode);
+        // 2) Fallback über which/where (wenn exec erlaubt)
+        if ($this->canUseExec()) {
+            $output = [];
+            $exitCode = 0;
 
-        // Falls mehrere Treffer, teste nur die ersten 3
-        $pathsToTest = array_slice($output, 0, 3);
-        foreach ($pathsToTest as $line) {
-            $line = trim($line);
-            if (!empty($line) && file_exists($line)) {
-                // Für bekannte, sichere Programme keine weiteren Tests
-                if ($this->isKnownSafeExecutable($line)) {
-                    return $line;
-                }
+            $lookupCommand = $this->isWindows ? 'where' : 'which';
+            $nullDevice    = $this->isWindows ? 'nul' : '/dev/null';
 
-                // Für andere Programme teste Ausführbarkeit (aber nur schnell)
-                if ($this->quickTestExecutability($line)) {
-                    return $line;
+            @exec($lookupCommand . ' ' . escapeshellarg($command) . ' 2>' . $nullDevice, $output, $exitCode);
+
+            // Falls mehrere Treffer, teste nur die ersten 3
+            $pathsToTest = array_slice($output, 0, 3);
+            foreach ($pathsToTest as $line) {
+                $line = trim((string)$line);
+                if ($line !== '' && file_exists($line)) {
+                    if ($this->isKnownSafeExecutable($line)) {
+                        return $line;
+                    }
+                    if ($this->quickTestExecutability($line)) {
+                        return $line;
+                    }
                 }
             }
         }
 
-        // Falls PATH-Suche fehlschlägt, versuche nur die häufigsten Windows-Pfade
+        // 3) Windows-Fallback
         if ($this->isWindows) {
             $foundPath = $this->quickSearchCommonPaths($command);
             if ($foundPath !== null) {
                 return $foundPath;
+            }
+
+            // (optional) alte, teurere Suche behalten
+            $foundPath = $this->searchInCommonDirectories($command);
+            if ($foundPath !== null) {
+                return $foundPath;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Plattformneutrale PATH-Auflösung ohne exec().
+     */
+    protected function resolveFromPath(string $command): ?string {
+        $pathEnv = getenv('PATH') ?: '';
+        if ($pathEnv === '') {
+            return null;
+        }
+
+        $dirs = array_values(array_filter(array_map('trim', explode(PATH_SEPARATOR, $pathEnv))));
+        if ($dirs === []) {
+            return null;
+        }
+
+        // Windows: PATHEXT berücksichtigen
+        $extensions = [''];
+        if ($this->isWindows) {
+            $pathext = getenv('PATHEXT') ?: '.EXE;.BAT;.CMD;.COM';
+            $extensions = array_values(array_filter(array_map('trim', explode(';', $pathext))));
+            if (!in_array('', $extensions, true)) {
+                $extensions[] = '';
+            }
+        }
+
+        foreach ($dirs as $dir) {
+            foreach ($extensions as $ext) {
+                $candidate = rtrim($dir, "\\/") . DIRECTORY_SEPARATOR . $command . $ext;
+                if (file_exists($candidate)) {
+                    if ($this->isWindows || is_executable($candidate)) {
+                        return $candidate;
+                    }
+                }
             }
         }
 
@@ -260,7 +390,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         ];
 
         $filename = strtolower(basename($path));
-        return in_array($filename, $safeExecutables);
+        return in_array($filename, $safeExecutables, true);
     }
 
     /**
@@ -271,17 +401,14 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return false;
         }
 
-        // Für Windows: Einfache Prüfungen ohne Ausführung
         if ($this->isWindows) {
-            // Für GUI-Programme nur Dateiprüfung
             $guiPrograms = ['notepad.exe', 'calc.exe', 'mspaint.exe', 'wordpad.exe'];
             $fileName = strtolower(basename($path));
 
-            if (in_array($fileName, $guiPrograms)) {
+            if (in_array($fileName, $guiPrograms, true)) {
                 return pathinfo($path, PATHINFO_EXTENSION) === 'exe';
             }
 
-            // Für andere Programme: Nur Dateiformat prüfen
             return pathinfo($path, PATHINFO_EXTENSION) === 'exe' && filesize($path) > 0;
         }
 
@@ -296,10 +423,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return null;
         }
 
-        // Entferne .exe wenn bereits vorhanden
         $baseCommand = preg_replace('/\.exe$/i', '', $command);
 
-        // Nur die wichtigsten Pfade prüfen
         $criticalPaths = [
             'C:\Windows\System32\\' . $baseCommand . '.exe',
             'C:\Windows\\' . $baseCommand . '.exe',
@@ -315,33 +440,6 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     }
 
     /**
-     * Testet, ob eine ausführbare Datei tatsächlich ausgeführt werden kann.
-     * Vereinfacht für bessere Performance.
-     */
-    protected function testExecutability(string $path): bool {
-        if (!file_exists($path)) {
-            return false;
-        }
-
-        // Für Windows: Vereinfachte Prüfung ohne tatsächliche Ausführung
-        if ($this->isWindows) {
-            // Für bekannte GUI-Programme wie notepad.exe - nicht starten!
-            $guiPrograms = ['notepad.exe', 'calc.exe', 'mspaint.exe', 'wordpad.exe'];
-            $fileName = strtolower(basename($path));
-
-            if (in_array($fileName, $guiPrograms)) {
-                // Für GUI-Programme nur prüfen ob die Datei existiert und eine .exe ist
-                return pathinfo($path, PATHINFO_EXTENSION) === 'exe';
-            }
-
-            // Für andere Programme: Nur Dateierweiterung und Größe prüfen
-            return pathinfo($path, PATHINFO_EXTENSION) === 'exe' && filesize($path) > 0;
-        }
-
-        return is_executable($path);
-    }
-
-    /**
      * Sucht eine ausführbare Datei in klassischen Windows-Ordnern.
      * Erweiterte gezielte Suche nach typischen Installationsmustern.
      */
@@ -350,10 +448,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return null;
         }
 
-        // Entferne .exe wenn bereits vorhanden
         $baseCommand = preg_replace('/\.exe$/i', '', $command);
 
-        // Erst schnelle direkte Pfade probieren
         $directPaths = [
             'C:\Windows\System32\\' . $baseCommand . '.exe',
             'C:\Windows\\' . $baseCommand . '.exe',
@@ -367,7 +463,6 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             }
         }
 
-        // Gezielte Suche in Program Files für versionierte Installationen
         $result = $this->searchInProgramFiles($baseCommand);
         if ($result !== null) {
             return $result;
@@ -378,7 +473,6 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Sucht gezielt in Program Files nach Ordnern, die den Programmnamen enthalten.
-     * Findet auch versionierte Installationen wie "qpdf 12.2.0".
      */
     protected function searchInProgramFiles(string $baseCommand): ?string {
         $programDirs = [
@@ -401,7 +495,6 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     $folderName = $dirInfo->getFilename();
                     $folderPath = $dirInfo->getPathname();
 
-                    // Prüfe ob der Ordner den Programmnamen enthält (z.B. "qpdf", "qpdf 12.2.0")
                     if (stripos($folderName, $baseCommand) !== false) {
                         $result = $this->searchInProgramFolder($folderPath, $baseCommand);
                         if ($result !== null) {
@@ -409,8 +502,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                         }
                     }
                 }
-            } catch (UnexpectedValueException $e) {
-                // Zugriffsprobleme - Ordner überspringen
+            } catch (UnexpectedValueException) {
                 continue;
             }
         }
@@ -420,26 +512,23 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Sucht in einem spezifischen Programm-Ordner nach der ausführbaren Datei.
-     * Berücksichtigt typische Unterordner wie bin/, tools/, etc.
      */
     protected function searchInProgramFolder(string $programPath, string $baseCommand): ?string {
-        // Typische Unterordner für ausführbare Dateien
         $subDirs = [
-            '',           // Direkt im Hauptordner
-            'bin',        // Häufig für Tools wie qpdf
-            'tools',      // Häufig für Entwicklertools
-            'exe',        // Manche Programme
-            'app',        // Manche Anwendungen
+            '',
+            'bin',
+            'tools',
+            'exe',
+            'app',
         ];
 
         foreach ($subDirs as $subDir) {
-            $searchPath = empty($subDir) ? $programPath : $programPath . DIRECTORY_SEPARATOR . $subDir;
+            $searchPath = $subDir === '' ? $programPath : $programPath . DIRECTORY_SEPARATOR . $subDir;
 
             if (!is_dir($searchPath)) {
                 continue;
             }
 
-            // Verschiedene mögliche Dateinamen
             $possibleFiles = [
                 $searchPath . DIRECTORY_SEPARATOR . $baseCommand . '.exe',
                 $searchPath . DIRECTORY_SEPARATOR . $baseCommand . '.cmd',
