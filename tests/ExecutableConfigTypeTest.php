@@ -223,34 +223,6 @@ class ExecutableConfigTypeTest extends TestCase {
     }
 
     /**
-     * Testet die erweiterte Windows-Ordner-Suche (nur auf Windows)
-     */
-    public function testWindowsCommonDirectoriesSearch(): void {
-        if (!$this->isWindows) {
-            $this->markTestSkipped('Dieser Test läuft nur unter Windows');
-        }
-
-        // Teste mit cmd.exe statt notepad (öffnet kein GUI-Fenster)
-        $data = [
-            'tools' => [
-                'cmd' => [
-                    'path' => 'cmd.exe',
-                    'required' => true
-                ]
-            ]
-        ];
-
-        $result = $this->configType->parse($data);
-
-        // cmd.exe sollte gefunden werden
-        $this->assertNotNull($result['tools']['cmd']['path']);
-        $this->assertStringContainsString('cmd.exe', strtolower($result['tools']['cmd']['path']));
-
-        // Der gefundene Pfad sollte existieren
-        $this->assertFileExists($result['tools']['cmd']['path']);
-    }
-
-    /**
      * Testet die Ausführbarkeits-Prüfung indirekt über die Haupt-API
      */
     public function testExecutabilityTest(): void {

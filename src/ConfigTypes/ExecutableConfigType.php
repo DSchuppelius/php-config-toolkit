@@ -44,7 +44,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 // WICHTIG: required robust normalisieren (bool/int/string)
                 $required = $this->normalizeBool($executable['required'] ?? false);
 
-                $executablePath = $this->getExecutablePath($executable);
+                $executablePath = $this->isExecutable($executable['path'] ?? '') ? $executable['path'] : $this->getExecutablePath($executable);
                 $arguments      = $this->getArguments($executable);
                 $debugArguments = $this->getDebugArguments($executable);
                 $files2Check    = $this->getFiles2Check($executable);
@@ -217,10 +217,27 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     protected function isExecutable(?string $path): bool {
         if (empty($path)) {
             return false;
+        } elseif ($path === basename($path)) {
+            return $this->isCommandExecutableCrossPlatform($path);
         }
 
         // Windows: `is_executable()` ist unzuverlässig, daher nur `file_exists()` prüfen
         return $this->isWindows ? file_exists($path) : (file_exists($path) && is_executable($path));
+    }
+
+    /**
+     * Plattformunabhängige Prüfung, ob ein Befehl ausführbar ist.
+     */
+    function isCommandExecutableCrossPlatform(string $command): bool {
+        if ($this->isWindows) {
+            $command = escapeshellarg($command);
+            $result = shell_exec("where {$command} 2>NUL");
+            return !empty($result);
+        }
+
+        $command = escapeshellarg($command);
+        $result = shell_exec("command -v {$command} 2>/dev/null");
+        return !empty($result);
     }
 
     /**

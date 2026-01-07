@@ -73,11 +73,7 @@ class ConfigLoaderTest extends TestCase {
         $ping = $config->get('shellExecutables', 'ping');
 
         $this->assertNotNull($ping);
-        if (PHP_OS_FAMILY === 'Windows') {
-            $this->assertSame('c:\windows\system32\ping.exe', strtolower($ping['path']));
-        } else {
-            $this->assertSame('/usr/bin/ping', $ping['path']);
-        }
+        $this->assertSame('ping', $ping['path']);
         $this->assertTrue($ping['required']);
     }
 
