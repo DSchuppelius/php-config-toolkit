@@ -22,7 +22,48 @@ use UnexpectedValueException;
  * Unterstützt Pfadvalidierung und automatische Suche im System-PATH.
  */
 class ExecutableConfigType extends ConfigTypeAbstract {
+    /**
+     * Liste bekannter sicherer System-Executables (lowercase für schnellen Vergleich).
+     * Enthält sowohl Windows (.exe) als auch Linux/Unix Varianten.
+     */
+    protected const KNOWN_SAFE_EXECUTABLES = [
+        // Windows
+        'ping.exe'       => true,
+        'cmd.exe'        => true,
+        'powershell.exe' => true,
+        'java.exe'       => true,
+        'node.exe'       => true,
+        'python.exe'     => true,
+        'git.exe'        => true,
+        'where.exe'      => true,
+        // Linux/Unix
+        'ping'           => true,
+        'bash'           => true,
+        'sh'             => true,
+        'zsh'            => true,
+        'java'           => true,
+        'node'           => true,
+        'python'         => true,
+        'python3'        => true,
+        'git'            => true,
+        'which'          => true,
+        'file'           => true,
+        'cat'            => true,
+        'ls'             => true,
+        'grep'           => true,
+        'find'           => true,
+        'curl'           => true,
+        'wget'           => true,
+        'php'            => true,
+        'composer'       => true,
+        'npm'            => true,
+        'yarn'           => true,
+    ];
+
     protected bool $isWindows;
+
+    /** @var bool|null Gecachter Wert für exec-Verfügbarkeit */
+    protected static ?bool $canUseExecCache = null;
 
     public function __construct() {
         $this->isWindows = strtolower(PHP_OS_FAMILY) === 'windows';
@@ -44,14 +85,14 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 // WICHTIG: required robust normalisieren (bool/int/string)
                 $required = $this->normalizeBool($executable['required'] ?? false);
 
-                $executablePath = $this->isExecutable($executable['path'] ?? '') ? $executable['path'] : $this->getExecutablePath($executable);
+                $executablePath = $this->getExecutablePath($executable);
                 $arguments      = $this->getArguments($executable);
                 $debugArguments = $this->getDebugArguments($executable);
                 $files2Check    = $this->getFiles2Check($executable);
                 $allFilesOk     = $this->checkRequiredFiles($files2Check);
 
                 if ($required && empty($executablePath)) {
-                    throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}'");
+                    throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' ({$executablePath}).");
                 }
 
                 if ($required && !$allFilesOk) {
@@ -228,7 +269,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /**
      * Plattformunabhängige Prüfung, ob ein Befehl ausführbar ist.
      */
-    function isCommandExecutableCrossPlatform(string $command): bool {
+    protected function isCommandExecutableCrossPlatform(string $command): bool {
         if ($this->isWindows) {
             $command = escapeshellarg($command);
             $result = shell_exec("where {$command} 2>NUL");
@@ -245,45 +286,70 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      */
     protected function getExecutablePath(array $executable): ?string {
         $path = $executable['path'] ?? null;
-        if (!is_string($path) || trim($path) === '') {
+        if (!is_string($path)) {
             return null;
         }
-        return $this->findExecutablePath(trim($path));
+
+        $path = trim($path);
+        if ($path === '') {
+            return null;
+        }
+
+        if ($this->isExecutable($path)) {
+            return $path;
+        }
+
+        return $this->findExecutablePath($path);
     }
 
+    /**
+     * Gibt ein Array-Feld aus dem Executable zurück, oder ein leeres Array.
+     */
+    protected function getArrayField(array $executable, string $field): array {
+        return isset($executable[$field]) && is_array($executable[$field]) ? $executable[$field] : [];
+    }
+
+    /**
+     * Gibt die Liste der zu prüfenden Zusatzdateien zurück.
+     */
     protected function getFiles2Check(array $executable): array {
-        return (isset($executable['files2Check']) && is_array($executable['files2Check'])) ? $executable['files2Check'] : [];
+        return $this->getArrayField($executable, 'files2Check');
     }
 
     /**
      * Gibt die Argumente für das ausführbare Programm zurück.
      */
     protected function getArguments(array $executable): array {
-        return (isset($executable['arguments']) && is_array($executable['arguments'])) ? $executable['arguments'] : [];
+        return $this->getArrayField($executable, 'arguments');
     }
 
     /**
      * Gibt die Debug-Argumente für das ausführbare Programm zurück.
      */
     protected function getDebugArguments(array $executable): array {
-        return (isset($executable['debugArguments']) && is_array($executable['debugArguments'])) ? $executable['debugArguments'] : [];
+        return $this->getArrayField($executable, 'debugArguments');
     }
 
     /**
      * Prüft ob exec nutzbar ist (shared hosting / hardened php.ini).
+     * Ergebnis wird gecacht für bessere Performance.
      */
     protected function canUseExec(): bool {
+        if (self::$canUseExecCache !== null) {
+            return self::$canUseExecCache;
+        }
+
         if (!function_exists('exec')) {
-            return false;
+            return self::$canUseExecCache = false;
         }
 
         $disabled = (string)ini_get('disable_functions');
         if ($disabled === '') {
-            return true;
+            return self::$canUseExecCache = true;
         }
 
-        $disabledList = array_map('trim', explode(',', $disabled));
-        return !in_array('exec', $disabledList, true);
+        $disabledList = array_map('trim', explode(',', strtolower($disabled)));
+        return self::$canUseExecCache = !in_array('exec', $disabledList, true);
     }
 
     /**
@@ -336,17 +402,51 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             }
         }
 
-        // 3) Windows-Fallback
+        // 3) Plattform-spezifische Fallback-Suche in Standard-Verzeichnissen
         if ($this->isWindows) {
-            $foundPath = $this->quickSearchCommonPaths($command);
-            if ($foundPath !== null) {
-                return $foundPath;
-            }
-
-            // (optional) alte, teurere Suche behalten
             $foundPath = $this->searchInCommonDirectories($command);
             if ($foundPath !== null) {
                 return $foundPath;
+            }
+        } else {
+            // Linux/Unix: Suche in typischen Standardpfaden
+            $foundPath = $this->searchInLinuxDirectories($command);
+            if ($foundPath !== null) {
+                return $foundPath;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Sucht eine ausführbare Datei in klassischen Linux/Unix-Verzeichnissen.
+     */
+    protected function searchInLinuxDirectories(string $command): ?string {
+        if ($this->isWindows) {
+            return null;
+        }
+
+        $standardPaths = [
+            '/usr/bin',
+            '/usr/local/bin',
+            '/bin',
+            '/usr/sbin',
+            '/sbin',
+            '/opt/bin',
+            '/snap/bin',
+            getenv('HOME') . '/.local/bin',
+            getenv('HOME') . '/bin',
+        ];
+
+        foreach ($standardPaths as $dir) {
+            if ($dir === false || $dir === '' || !is_dir($dir)) {
+                continue;
+            }
+
+            $candidate = rtrim($dir, '/') . '/' . $command;
+            if (file_exists($candidate) && is_executable($candidate)) {
+                return $candidate;
             }
         }
 
@@ -393,21 +493,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Prüft ob es sich um ein bekanntes, sicheres Executable handelt.
+     * Verwendet Hash-Lookup für O(1) Performance.
      */
     protected function isKnownSafeExecutable(string $path): bool {
-        $safeExecutables = [
-            'ping.exe',
-            'cmd.exe',
-            'powershell.exe',
-            'java.exe',
-            'node.exe',
-            'python.exe',
-            'git.exe',
-            'where.exe'
-        ];
-
         $filename = strtolower(basename($path));
-        return in_array($filename, $safeExecutables, true);
+        return isset(self::KNOWN_SAFE_EXECUTABLES[$filename]);
     }
 
     /**
@@ -430,30 +520,6 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         return is_executable($path);
-    }
-
-    /**
-     * Schnelle Suche nur in den wichtigsten Windows-Pfaden.
-     */
-    protected function quickSearchCommonPaths(string $command): ?string {
-        if (!$this->isWindows) {
-            return null;
-        }
-
-        $baseCommand = preg_replace('/\.exe$/i', '', $command);
-
-        $criticalPaths = [
-            'C:\Windows\System32\\' . $baseCommand . '.exe',
-            'C:\Windows\\' . $baseCommand . '.exe',
-        ];
-
-        foreach ($criticalPaths as $path) {
-            if (file_exists($path)) {
-                return $path;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -480,12 +546,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             }
         }
 
-        $result = $this->searchInProgramFiles($baseCommand);
-        if ($result !== null) {
-            return $result;
-        }
-
-        return null;
+        return $this->searchInProgramFiles($baseCommand);
     }
 
     /**

@@ -290,10 +290,9 @@ class ExecutableConfigTypeTest extends TestCase {
         // Teste über eine vollständige Konfiguration statt direkter Methodenaufrufe
         $testData = [
             'tools' => [
-                [
-                    'name' => 'Test Tool',
+                'testTool' => [
                     'path' => 'qpdf',  // Hypothetisches Tool
-                    'enabled' => true
+                    'required' => false
                 ]
             ]
         ];
