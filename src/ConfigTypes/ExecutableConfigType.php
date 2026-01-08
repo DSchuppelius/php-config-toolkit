@@ -92,11 +92,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $allFilesOk     = $this->checkRequiredFiles($files2Check);
 
                 if ($required && empty($executablePath)) {
-                    throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' ({$executablePath}).");
+                    throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
                 }
 
                 if ($required && !$allFilesOk) {
-                    throw new Exception("Erforderliche Zusatzdateien fehlen für '{$name}' in '{$category}'.");
+                    throw new Exception("Erforderliche Zusatzdateien fehlen für '{$name}' in '{$category}' (Konfigurationswert: '" . implode(", ", $files2Check) . "').");
                 }
 
                 $parsed[$category][$name] = [
