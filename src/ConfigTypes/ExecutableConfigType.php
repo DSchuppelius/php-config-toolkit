@@ -90,19 +90,21 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $debugArguments = $this->getDebugArguments($executable);
                 $files2Check    = $this->getFiles2Check($executable);
                 $folders2Check  = $this->getFolders2Check($executable);
-                $allFilesOk     = $this->checkRequiredFiles($files2Check);
-                $allFoldersOk   = $this->checkRequiredFolders($folders2Check);
+                $fileErrors     = $this->checkRequiredFilesWithErrors($files2Check);
+                $folderErrors   = $this->checkRequiredFoldersWithErrors($folders2Check);
 
                 if ($required && empty($executablePath)) {
                     throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
                 }
 
-                if ($required && !$allFilesOk) {
-                    throw new Exception("Erforderliche Zusatzdateien fehlen für '{$name}' in '{$category}' (Konfigurationswert: '" . implode(", ", $files2Check) . "').");
+                if ($required && !empty($fileErrors)) {
+                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
+                    throw new Exception("Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
                 }
 
-                if ($required && !$allFoldersOk) {
-                    throw new Exception("Erforderliche Zusatzordner fehlen für '{$name}' in '{$category}' (Konfigurationswert: '" . implode(", ", $folders2Check) . "').");
+                if ($required && !empty($folderErrors)) {
+                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
+                    throw new Exception("Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
                 }
 
                 $parsed[$category][$name] = [
@@ -194,15 +196,17 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
                 $files2Check = $this->getFiles2Check($executable);
                 foreach ($files2Check as $file) {
-                    if (!$this->isUsableFile((string)$file)) {
-                        $errors[] = "Datei fehlt für '{$name}' in '{$category}': {$file}";
+                    $error = $this->getFileUsabilityError((string)$file);
+                    if ($error !== null) {
+                        $errors[] = "Datei '{$file}' für '{$name}' in '{$category}': {$error}";
                     }
                 }
 
                 $folders2Check = $this->getFolders2Check($executable);
                 foreach ($folders2Check as $folder) {
-                    if (!$this->isUsableFolder((string)$folder)) {
-                        $errors[] = "Ordner fehlt für '{$name}' in '{$category}': {$folder}";
+                    $error = $this->getFolderUsabilityError((string)$folder);
+                    if ($error !== null) {
+                        $errors[] = "Ordner '{$folder}' für '{$name}' in '{$category}': {$error}";
                     }
                 }
             }
@@ -238,20 +242,30 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * - Datei existiert (und idealerweise lesbar)
      */
     protected function isUsableFile(string $path): bool {
+        return $this->getFileUsabilityError($path) === null;
+    }
+
+    /**
+     * Prüft eine Datei und gibt den Fehlergrund zurück, oder null wenn alles ok ist.
+     */
+    protected function getFileUsabilityError(string $path): ?string {
         if ($path === '') {
-            return false;
+            return 'Pfad ist leer';
         }
 
         if (is_link($path)) {
-            return true;
+            return null; // Symlink ist ok
         }
 
         if (!file_exists($path)) {
-            return false;
+            return 'existiert nicht';
         }
 
-        // optional härter: in deiner Situation sinnvoll, weil magic-Dateien auch lesbar sein müssen
-        return is_readable($path);
+        if (!is_readable($path)) {
+            return 'existiert, aber kein Lesezugriff';
+        }
+
+        return null;
     }
 
     /**
@@ -260,43 +274,78 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * - Ordner existiert (und idealerweise lesbar)
      */
     protected function isUsableFolder(string $path): bool {
+        return $this->getFolderUsabilityError($path) === null;
+    }
+
+    /**
+     * Prüft einen Ordner und gibt den Fehlergrund zurück, oder null wenn alles ok ist.
+     */
+    protected function getFolderUsabilityError(string $path): ?string {
         if ($path === '') {
-            return false;
+            return 'Pfad ist leer';
         }
 
         if (is_link($path)) {
-            return true;
+            return null; // Symlink ist ok
+        }
+
+        if (!file_exists($path)) {
+            return 'existiert nicht';
         }
 
         if (!is_dir($path)) {
-            return false;
+            return 'ist keine Verzeichnis';
         }
 
-        return is_readable($path);
+        if (!is_readable($path)) {
+            return 'existiert, aber kein Lesezugriff';
+        }
+
+        return null;
+    }
+
+    /**
+     * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
+     * Gibt ein Array mit Fehlermeldungen zurück (leer wenn alles ok).
+     */
+    protected function checkRequiredFilesWithErrors(array $paths): array {
+        $errors = [];
+        foreach ($paths as $path) {
+            $error = $this->getFileUsabilityError((string)$path);
+            if ($error !== null) {
+                $errors[$path] = $error;
+            }
+        }
+        return $errors;
+    }
+
+    /**
+     * Prüft, ob alle erforderlichen Ordner existieren und zugänglich sind.
+     * Gibt ein Array mit Fehlermeldungen zurück (leer wenn alles ok).
+     */
+    protected function checkRequiredFoldersWithErrors(array $paths): array {
+        $errors = [];
+        foreach ($paths as $path) {
+            $error = $this->getFolderUsabilityError((string)$path);
+            if ($error !== null) {
+                $errors[$path] = $error;
+            }
+        }
+        return $errors;
     }
 
     /**
      * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
      */
     protected function checkRequiredFiles(array $paths): bool {
-        foreach ($paths as $path) {
-            if (!$this->isUsableFile((string)$path)) {
-                return false;
-            }
-        }
-        return true;
+        return empty($this->checkRequiredFilesWithErrors($paths));
     }
 
     /**
      * Prüft, ob alle erforderlichen Ordner existieren und zugänglich sind.
      */
     protected function checkRequiredFolders(array $paths): bool {
-        foreach ($paths as $path) {
-            if (!$this->isUsableFolder((string)$path)) {
-                return false;
-            }
-        }
-        return true;
+        return empty($this->checkRequiredFoldersWithErrors($paths));
     }
 
     /**

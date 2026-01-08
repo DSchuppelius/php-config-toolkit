@@ -175,7 +175,7 @@ class ExecutableConfigTypeTest extends TestCase {
         ];
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches("/Erforderliche Zusatzdateien fehlen/");
+        $this->expectExceptionMessageMatches("/Erforderliche Zusatzdateien nicht verfügbar/");
 
         $this->configType->parse($dataWithMissingFile);
 
