@@ -89,7 +89,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $arguments      = $this->getArguments($executable);
                 $debugArguments = $this->getDebugArguments($executable);
                 $files2Check    = $this->getFiles2Check($executable);
+                $folders2Check  = $this->getFolders2Check($executable);
                 $allFilesOk     = $this->checkRequiredFiles($files2Check);
+                $allFoldersOk   = $this->checkRequiredFolders($folders2Check);
 
                 if ($required && empty($executablePath)) {
                     throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
@@ -99,6 +101,10 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     throw new Exception("Erforderliche Zusatzdateien fehlen für '{$name}' in '{$category}' (Konfigurationswert: '" . implode(", ", $files2Check) . "').");
                 }
 
+                if ($required && !$allFoldersOk) {
+                    throw new Exception("Erforderliche Zusatzordner fehlen für '{$name}' in '{$category}' (Konfigurationswert: '" . implode(", ", $folders2Check) . "').");
+                }
+
                 $parsed[$category][$name] = [
                     'path'           => $executablePath, // aufgelöster Pfad oder null
                     'required'       => $required,
@@ -106,6 +112,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     'arguments'      => $arguments,
                     'debugArguments' => $debugArguments,
                     'files2Check'    => $files2Check,
+                    'folders2Check'  => $folders2Check,
                     'package'        => $executable['package'] ?? null,
                 ];
             }
@@ -191,6 +198,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                         $errors[] = "Datei fehlt für '{$name}' in '{$category}': {$file}";
                     }
                 }
+
+                $folders2Check = $this->getFolders2Check($executable);
+                foreach ($folders2Check as $folder) {
+                    if (!$this->isUsableFolder((string)$folder)) {
+                        $errors[] = "Ordner fehlt für '{$name}' in '{$category}': {$folder}";
+                    }
+                }
             }
         }
 
@@ -241,11 +255,44 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     }
 
     /**
+     * Zusatzordner ist ok, wenn:
+     * - Symlink vorhanden ODER
+     * - Ordner existiert (und idealerweise lesbar)
+     */
+    protected function isUsableFolder(string $path): bool {
+        if ($path === '') {
+            return false;
+        }
+
+        if (is_link($path)) {
+            return true;
+        }
+
+        if (!is_dir($path)) {
+            return false;
+        }
+
+        return is_readable($path);
+    }
+
+    /**
      * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
      */
     protected function checkRequiredFiles(array $paths): bool {
         foreach ($paths as $path) {
             if (!$this->isUsableFile((string)$path)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Prüft, ob alle erforderlichen Ordner existieren und zugänglich sind.
+     */
+    protected function checkRequiredFolders(array $paths): bool {
+        foreach ($paths as $path) {
+            if (!$this->isUsableFolder((string)$path)) {
                 return false;
             }
         }
@@ -314,6 +361,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      */
     protected function getFiles2Check(array $executable): array {
         return $this->getArrayField($executable, 'files2Check');
+    }
+
+    /**
+     * Gibt die Liste der zu prüfenden Zusatzordner zurück.
+     */
+    protected function getFolders2Check(array $executable): array {
+        return $this->getArrayField($executable, 'folders2Check');
     }
 
     /**

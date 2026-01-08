@@ -72,7 +72,20 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
             return $executable[$platformKey];
         }
 
-        return $executable['files2Check'] ?? [];
+        return parent::getFiles2Check($executable);
+    }
+
+    /**
+     * Gibt die zu prüfenden Ordner basierend auf dem aktuellen OS zurück.
+     */
+    protected function getFolders2Check(array $executable): array {
+        $platformKey = $this->isWindows ? 'windowsFolders2Check' : 'linuxFolders2Check';
+
+        if (isset($executable[$platformKey]) && is_array($executable[$platformKey])) {
+            return $executable[$platformKey];
+        }
+
+        return parent::getFolders2Check($executable);
     }
 
     /**
