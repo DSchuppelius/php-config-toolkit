@@ -14,9 +14,9 @@ namespace ConfigToolkit;
 
 use ERRORToolkit\Exceptions\FileSystem\FolderNotFoundException;
 use ERRORToolkit\Traits\ErrorLog;
-use ReflectionClass;
 use Exception;
 use Psr\Log\LoggerInterface;
+use ReflectionClass;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -59,8 +59,7 @@ class ClassLoader {
         $this->logInfo("Lade Klassen aus Verzeichnis: $this->directory mit Namespace: $this->namespace");
 
         if (!is_dir($this->directory)) {
-            $this->logError("Verzeichnis nicht gefunden: $this->directory");
-            throw new FolderNotFoundException("Das Verzeichnis für Klassen konnte nicht aufgelöst werden: $this->directory");
+            $this->logErrorAndThrow(FolderNotFoundException::class, "Das Verzeichnis für Klassen konnte nicht aufgelöst werden: $this->directory");
         }
 
         $this->classes = [];

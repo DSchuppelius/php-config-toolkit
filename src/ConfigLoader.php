@@ -68,10 +68,10 @@ class ConfigLoader {
         $realPath = realpath($filePath);
 
         if (!$realPath) {
-            $this->logError("Konfigurationsdatei nicht gefunden: {$filePath}");
             if ($throwException) {
-                throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
+                $this->logErrorAndThrow(Exception::class, "Konfigurationsdatei nicht gefunden: {$filePath}");
             }
+            $this->logError("Konfigurationsdatei nicht gefunden: {$filePath}");
             return false;
         }
 
@@ -84,10 +84,10 @@ class ConfigLoader {
         $data = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->logError("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             if ($throwException) {
-                throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
+                $this->logErrorAndThrow(Exception::class, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             }
+            $this->logError("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             return false;
         }
 
@@ -131,8 +131,7 @@ class ConfigLoader {
                 return new $class();
             }
         }
-        $this->logError("Unbekannter Konfigurationstyp in der aktuellen Datei");
-        throw new Exception("Unbekannter Konfigurationstyp in der aktuellen Datei");
+        $this->logErrorAndThrow(Exception::class, "Unbekannter Konfigurationstyp in der aktuellen Datei");
     }
 
     /**

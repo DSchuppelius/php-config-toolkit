@@ -49,7 +49,7 @@ class PostmanConfigType extends ConfigTypeAbstract {
             }
 
             if (!isset($item['key'])) {
-                throw new Exception("Fehlender 'key' in Postman-Konfigurationswerten.");
+                $this->logErrorAndThrow(Exception::class, "Fehlender 'key' in Postman-Konfigurationswerten.");
             }
 
             $key = $item['key'];

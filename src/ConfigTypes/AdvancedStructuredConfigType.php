@@ -107,7 +107,7 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
             }
 
             if (!isset($item['key'])) {
-                throw new Exception("Fehlender 'key' in '{$section}'.");
+                $this->logErrorAndThrow(Exception::class, "Fehlender 'key' in '{$section}'.");
             }
 
             $result[$item['key']] = $this->castValue($item['value'] ?? null, $item['type'] ?? 'text');

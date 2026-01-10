@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace ConfigToolkit\Contracts\Abstracts;
 
 use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
+use ERRORToolkit\Traits\ErrorLog;
 
 /**
  * Abstrakte Basisklasse für alle ConfigType-Implementierungen.
  * Stellt gemeinsame Funktionalität wie Type-Casting bereit.
  */
 abstract class ConfigTypeAbstract implements ConfigTypeInterface {
+    use ErrorLog;
     /**
      * Konvertiert einen Wert in den angegebenen Typ.
      *

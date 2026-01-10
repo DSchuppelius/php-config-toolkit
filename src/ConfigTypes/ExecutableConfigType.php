@@ -94,17 +94,17 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $folderErrors   = $this->checkRequiredFoldersWithErrors($folders2Check);
 
                 if ($required && empty($executablePath)) {
-                    throw new Exception("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
+                    $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
                 }
 
                 if ($required && !empty($fileErrors)) {
                     $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
-                    throw new Exception("Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
+                    $this->logErrorAndThrow(Exception::class, "Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
                 }
 
                 if ($required && !empty($folderErrors)) {
                     $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
-                    throw new Exception("Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
+                    $this->logErrorAndThrow(Exception::class, "Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
                 }
 
                 $parsed[$category][$name] = [

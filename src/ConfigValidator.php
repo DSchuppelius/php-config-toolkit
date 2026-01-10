@@ -14,6 +14,8 @@ namespace ConfigToolkit;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
+use ERRORToolkit\Exceptions\FileSystem\FileNotFoundException;
+use ERRORToolkit\Traits\ErrorLog;
 use Exception;
 use ReflectionClass;
 
@@ -22,6 +24,8 @@ use ReflectionClass;
  * Erkennt automatisch den passenden ConfigType und führt dessen Validierung aus.
  */
 class ConfigValidator {
+    use ErrorLog;
+
     /**
      * Cache für geladene ConfigType-Klassen.
      */
@@ -36,14 +40,14 @@ class ConfigValidator {
      */
     public static function validate(string $filePath): array {
         if (!file_exists($filePath)) {
-            throw new Exception("Konfigurationsdatei nicht gefunden: {$filePath}");
+            self::logErrorAndThrow(FileNotFoundException::class, "Konfigurationsdatei nicht gefunden: {$filePath}");
         }
 
         $jsonContent = file_get_contents($filePath);
         $data = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
+            self::logErrorAndThrow(Exception::class, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
         }
 
         self::loadAvailableConfigTypes();
@@ -67,7 +71,7 @@ class ConfigValidator {
         }
 
         if (empty(self::$configTypeClasses)) {
-            throw new Exception("Keine gültigen Konfigurationstypen gefunden.");
+            self::logErrorAndThrow(Exception::class, "Keine gültigen Konfigurationstypen gefunden.");
         }
     }
 
@@ -86,6 +90,6 @@ class ConfigValidator {
             }
         }
 
-        throw new Exception("Unbekannter Konfigurationstyp in der Datei.");
+        self::logErrorAndThrow(Exception::class, "Unbekannter Konfigurationstyp in der Datei.");
     }
 }
