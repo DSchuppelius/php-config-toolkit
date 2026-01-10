@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b5c93364505e685218c40a1b6c08afb8",
+    "content-hash": "f63de2f8ac027e3067355e87f47d19a0",
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
-            "version": "v1.5.2",
+            "version": "v2.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DSchuppelius/php-error-toolkit.git",
-                "reference": "a2b938871601b417c60f65141ad9b20c2eea82a2"
+                "reference": "0c1ae0af9ad77789d16feb4f01ad45c8f67c2d51"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/a2b938871601b417c60f65141ad9b20c2eea82a2",
-                "reference": "a2b938871601b417c60f65141ad9b20c2eea82a2",
+                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/0c1ae0af9ad77789d16feb4f01ad45c8f67c2d51",
+                "reference": "0c1ae0af9ad77789d16feb4f01ad45c8f67c2d51",
                 "shasum": ""
             },
             "require": {
@@ -46,9 +46,9 @@
             "description": "Reused codes for my api php sdks",
             "support": {
                 "issues": "https://github.com/DSchuppelius/php-error-toolkit/issues",
-                "source": "https://github.com/DSchuppelius/php-error-toolkit/tree/v1.5.2"
+                "source": "https://github.com/DSchuppelius/php-error-toolkit/tree/v2.0.3"
             },
-            "time": "2026-01-10T14:32:34+00:00"
+            "time": "2026-01-10T22:05:16+00:00"
         },
         {
             "name": "psr/log",

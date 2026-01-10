@@ -71,13 +71,11 @@ class ConfigLoader {
             if ($throwException) {
                 $this->logErrorAndThrow(Exception::class, "Konfigurationsdatei nicht gefunden: {$filePath}");
             }
-            $this->logError("Konfigurationsdatei nicht gefunden: {$filePath}");
-            return false;
+            return $this->logErrorAndReturn(false, "Konfigurationsdatei nicht gefunden: {$filePath}");
         }
 
         if (!$forceReload && $this->hasLoadedConfigFile($realPath)) {
-            $this->logInfo("Konfigurationsdatei bereits geladen, übersprungen: $realPath");
-            return true;
+            return $this->logInfoAndReturn(true, "Konfigurationsdatei bereits geladen, übersprungen: $realPath");
         }
 
         $jsonContent = file_get_contents($realPath);
@@ -87,8 +85,7 @@ class ConfigLoader {
             if ($throwException) {
                 $this->logErrorAndThrow(Exception::class, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
             }
-            $this->logError("Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
-            return false;
+            return $this->logErrorAndReturn(false, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
         }
 
         try {
