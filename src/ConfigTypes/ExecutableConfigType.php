@@ -65,6 +65,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /** @var bool|null Gecachter Wert für exec-Verfügbarkeit */
     protected static ?bool $canUseExecCache = null;
 
+    /** @var array|null Gecachte open_basedir Pfade (null = nicht gecacht, [] = keine Einschränkung) */
+    protected static ?array $openBasedirPathsCache = null;
+
     public function __construct() {
         $this->isWindows = strtolower(PHP_OS_FAMILY) === 'windows';
     }
@@ -186,6 +189,14 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     $errors[] = "Kein ausführbarer Pfad für '{$name}' in '{$category}'.";
                 }
 
+                // Prüfe open_basedir Beschränkung für gefundene Pfade
+                if ($path !== null) {
+                    $openBasedirError = $this->getOpenBasedirError($path);
+                    if ($openBasedirError !== null) {
+                        $errors[] = "Executable '{$name}' in '{$category}': {$openBasedirError}";
+                    }
+                }
+
                 if (isset($executable['arguments']) && !is_array($executable['arguments'])) {
                     $errors[] = "Ungültige 'arguments' für '{$name}' in '{$category}' - muss ein Array sein.";
                 }
@@ -253,6 +264,12 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return 'Pfad ist leer';
         }
 
+        // Prüfe open_basedir Beschränkung
+        $openBasedirError = $this->getOpenBasedirError($path);
+        if ($openBasedirError !== null) {
+            return $openBasedirError;
+        }
+
         if (is_link($path)) {
             return null; // Symlink ist ok
         }
@@ -283,6 +300,12 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     protected function getFolderUsabilityError(string $path): ?string {
         if ($path === '') {
             return 'Pfad ist leer';
+        }
+
+        // Prüfe open_basedir Beschränkung
+        $openBasedirError = $this->getOpenBasedirError($path);
+        if ($openBasedirError !== null) {
+            return $openBasedirError;
         }
 
         if (is_link($path)) {
@@ -356,6 +379,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return false;
         } elseif ($path === basename($path)) {
             return $this->isCommandExecutableCrossPlatform($path);
+        }
+
+        // Prüfe open_basedir Beschränkung
+        if (!$this->isPathWithinOpenBasedir($path)) {
+            return false;
         }
 
         // Windows: `is_executable()` ist unzuverlässig, daher nur `file_exists()` prüfen
@@ -456,6 +484,111 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     }
 
     /**
+     * Prüft, ob open_basedir aktiv ist.
+     * Ergebnis wird gecacht für bessere Performance.
+     */
+    protected function isOpenBasedirActive(): bool {
+        return !empty($this->getOpenBasedirPaths());
+    }
+
+    /**
+     * Gibt die konfigurierten open_basedir Pfade zurück.
+     * Ergebnis wird gecacht für bessere Performance.
+     *
+     * @return array Leeres Array wenn open_basedir nicht aktiv ist.
+     */
+    protected function getOpenBasedirPaths(): array {
+        if (self::$openBasedirPathsCache !== null) {
+            return self::$openBasedirPathsCache;
+        }
+
+        $openBasedir = (string)ini_get('open_basedir');
+        if ($openBasedir === '') {
+            return self::$openBasedirPathsCache = [];
+        }
+
+        $separator = $this->isWindows ? ';' : ':';
+        $paths = array_filter(array_map('trim', explode($separator, $openBasedir)));
+
+        // Normalisiere Pfade für konsistenten Vergleich
+        $normalizedPaths = [];
+        foreach ($paths as $path) {
+            $realPath = realpath($path);
+            if ($realPath !== false) {
+                $normalizedPaths[] = $realPath;
+            } else {
+                // Behalte den Original-Pfad falls realpath fehlschlägt
+                $normalizedPaths[] = rtrim($path, DIRECTORY_SEPARATOR);
+            }
+        }
+
+        return self::$openBasedirPathsCache = $normalizedPaths;
+    }
+
+    /**
+     * Prüft, ob ein Pfad innerhalb der open_basedir Beschränkungen liegt.
+     *
+     * @param string $path Der zu prüfende Pfad.
+     * @return bool True wenn der Pfad erlaubt ist oder open_basedir nicht aktiv ist.
+     */
+    protected function isPathWithinOpenBasedir(string $path): bool {
+        $allowedPaths = $this->getOpenBasedirPaths();
+
+        // Keine Einschränkung aktiv
+        if (empty($allowedPaths)) {
+            return true;
+        }
+
+        // Normalisiere den zu prüfenden Pfad
+        $realPath = realpath($path);
+        if ($realPath === false) {
+            // Datei existiert nicht, prüfe ob Parent-Verzeichnis erlaubt ist
+            $parentDir = dirname($path);
+            $realPath = realpath($parentDir);
+            if ($realPath === false) {
+                return false;
+            }
+        }
+
+        // Prüfe ob der Pfad innerhalb eines erlaubten Verzeichnisses liegt
+        foreach ($allowedPaths as $allowedPath) {
+            if ($this->isWindows) {
+                // Windows: Case-insensitiver Vergleich
+                if (stripos($realPath, $allowedPath) === 0) {
+                    // Stelle sicher, dass es ein echtes Unterverzeichnis ist
+                    $nextChar = substr($realPath, strlen($allowedPath), 1);
+                    if ($nextChar === '' || $nextChar === DIRECTORY_SEPARATOR || $nextChar === '/') {
+                        return true;
+                    }
+                }
+            } else {
+                // Linux/Unix: Case-sensitiver Vergleich
+                if (strpos($realPath, $allowedPath) === 0) {
+                    $nextChar = substr($realPath, strlen($allowedPath), 1);
+                    if ($nextChar === '' || $nextChar === '/') {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gibt einen Fehler zurück, wenn ein Pfad durch open_basedir eingeschränkt ist.
+     *
+     * @param string $path Der zu prüfende Pfad.
+     * @return string|null Fehlermeldung oder null wenn der Pfad erlaubt ist.
+     */
+    protected function getOpenBasedirError(string $path): ?string {
+        if (!$this->isPathWithinOpenBasedir($path)) {
+            return 'liegt außerhalb der open_basedir Beschränkung';
+        }
+        return null;
+    }
+
+    /**
      * Sucht eine ausführbare Datei im `PATH`.
      * - Erst ohne exec (PATH manuell), damit es auch bei disabled exec funktioniert
      * - Danach optional which/where
@@ -547,6 +680,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 continue;
             }
 
+            // Prüfe open_basedir Beschränkung
+            if (!$this->isPathWithinOpenBasedir($dir)) {
+                continue;
+            }
+
             $candidate = rtrim($dir, '/') . '/' . $command;
             if (file_exists($candidate) && is_executable($candidate)) {
                 return $candidate;
@@ -581,6 +719,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         foreach ($dirs as $dir) {
+            // Prüfe open_basedir Beschränkung
+            if (!$this->isPathWithinOpenBasedir($dir)) {
+                continue;
+            }
+
             foreach ($extensions as $ext) {
                 $candidate = rtrim($dir, "\\/") . DIRECTORY_SEPARATOR . $command . $ext;
                 if (file_exists($candidate)) {
@@ -644,6 +787,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         ];
 
         foreach ($directPaths as $possiblePath) {
+            // Prüfe open_basedir Beschränkung
+            if (!$this->isPathWithinOpenBasedir($possiblePath)) {
+                continue;
+            }
+
             if (file_exists($possiblePath)) {
                 return $possiblePath;
             }
@@ -663,6 +811,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
         foreach ($programDirs as $programDir) {
             if (!is_dir($programDir)) {
+                continue;
+            }
+
+            // Prüfe open_basedir Beschränkung
+            if (!$this->isPathWithinOpenBasedir($programDir)) {
                 continue;
             }
 
