@@ -95,7 +95,7 @@ class ConfigLoader {
             // Merge der Konfiguration, spätere Dateien überschreiben frühere
             $this->config = array_replace_recursive($this->config, $parsedConfig);
             $this->loadedFiles[] = $realPath; // Speichert die Datei als geladen
-            $this->logInfo("Konfigurationsdatei: $realPath, mit Typ: " . get_class($configType) . " geladen");
+            return $this->logDebugAndReturn(true, "Konfigurationsdatei: $realPath, mit Typ: " . get_class($configType) . " geladen");
         } catch (Exception $e) {
             $this->logError("Fehler beim Laden der Konfigurationsdatei $realPath: " . $e->getMessage());
             if ($throwException) {
@@ -103,7 +103,6 @@ class ConfigLoader {
             }
             return false;
         }
-        return true;
     }
 
     /**
