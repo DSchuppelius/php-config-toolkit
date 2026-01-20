@@ -56,7 +56,7 @@ class ClassLoader {
      * @throws FolderNotFoundException Wenn das Verzeichnis nicht existiert.
      */
     public function reloadClasses(): void {
-        $this->logInfo("Lade Klassen aus Verzeichnis: $this->directory mit Namespace: $this->namespace");
+        $this->logDebug("Lade Klassen aus Verzeichnis: $this->directory mit Namespace: $this->namespace");
 
         if (!is_dir($this->directory)) {
             $this->logErrorAndThrow(FolderNotFoundException::class, "Das Verzeichnis für Klassen konnte nicht aufgelöst werden: $this->directory");
@@ -89,10 +89,10 @@ class ClassLoader {
                 $reflectionClass = new ReflectionClass($className);
 
                 if (!$reflectionClass->isInstantiable()) {
-                    $this->logWarning("Klasse ist nicht instanziierbar (z.B. abstrakt): $className");
+                    $this->logDebug("Klasse ist nicht instanziierbar (z.B. abstrakt): $className");
                     continue;
                 } elseif (!$reflectionClass->implementsInterface($this->interface)) {
-                    $this->logWarning("Klasse implementiert nicht das Interface $this->interface: $className");
+                    $this->logDebug("Klasse implementiert nicht das Interface $this->interface: $className");
                     continue;
                 }
 
