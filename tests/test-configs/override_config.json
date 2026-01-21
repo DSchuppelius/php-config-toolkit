@@ -1,0 +1,27 @@
+{
+    "Logger": [
+        {
+            "key": "logFile",
+            "value": "overridden.txt",
+            "type": "text",
+            "description": "Überschreibt den Wert aus valid_config.json",
+            "enabled": true
+        },
+        {
+            "key": "newSetting",
+            "value": "newValue",
+            "type": "text",
+            "description": "Neue Einstellung",
+            "enabled": true
+        }
+    ],
+    "NewSection": [
+        {
+            "key": "setting1",
+            "value": "value1",
+            "type": "text",
+            "description": "",
+            "enabled": true
+        }
+    ]
+}

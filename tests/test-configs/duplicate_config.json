@@ -1,0 +1,55 @@
+{
+    "Logger": [
+        {
+            "key": "logFile",
+            "value": "log.txt",
+            "type": "text",
+            "description": "Erste Definition",
+            "enabled": true
+        },
+        {
+            "key": "logLevel",
+            "value": "debug",
+            "type": "text",
+            "description": "",
+            "enabled": true
+        },
+        {
+            "key": "logFile",
+            "value": "duplicate.txt",
+            "type": "text",
+            "description": "Doppelte Definition",
+            "enabled": true
+        },
+        {
+            "key": "logLevel",
+            "value": "info",
+            "type": "text",
+            "description": "Überschriebener logLevel",
+            "enabled": false
+        }
+    ],
+    "Archive": [
+        {
+            "key": "enabled",
+            "value": "true",
+            "type": "bool",
+            "description": "",
+            "enabled": true
+        },
+        {
+            "key": "path",
+            "value": "log/archive",
+            "type": "text",
+            "description": "",
+            "enabled": true
+        },
+        {
+            "key": "enabled",
+            "value": "false",
+            "type": "bool",
+            "description": "Duplikat von enabled",
+            "enabled": true
+        }
+    ]
+}

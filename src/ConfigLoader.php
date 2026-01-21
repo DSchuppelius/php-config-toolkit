@@ -30,6 +30,7 @@ class ConfigLoader {
     protected array $filePaths = [];
     protected array $loadedFiles = []; // Speichert bereits geladene Konfigurationsdateien
     protected ClassLoader $classLoader;
+    protected ConfigDuplicateChecker $duplicateChecker;
 
     protected static string $configTypesDirectory = __DIR__ . DIRECTORY_SEPARATOR . 'ConfigTypes';
     protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
@@ -38,6 +39,7 @@ class ConfigLoader {
         $this->initializeLogger($logger);
 
         $this->classLoader = new ClassLoader(self::$configTypesDirectory, self::$configTypesNamespace, ConfigTypeInterface::class, $logger);
+        $this->duplicateChecker = new ConfigDuplicateChecker($logger);
     }
 
     /**
@@ -89,6 +91,40 @@ class ConfigLoader {
         }
 
         try {
+            // Prüfe auf Duplikate innerhalb der Datei
+            $fileDuplicates = $this->duplicateChecker->checkFileForDuplicates($realPath);
+            foreach ($fileDuplicates as $dup) {
+                $this->logWarning(sprintf(
+                    "Duplikat gefunden in '%s': Sektion '%s', Key '%s' ist mehrfach definiert (Index %d und %d)",
+                    basename($realPath),
+                    $dup['section'],
+                    $dup['key'],
+                    $dup['firstIndex'],
+                    $dup['secondIndex']
+                ));
+            }
+
+            // Prüfe auf Überschreibungen gegenüber bereits geladenen Dateien
+            if (!empty($this->loadedFiles)) {
+                $allFiles = array_merge($this->loadedFiles, [$realPath]);
+                $checkResult = $this->duplicateChecker->checkFilesForDuplicatesAndOverrides($allFiles);
+
+                // Nur neue Überschreibungen loggen (die diese Datei betreffen)
+                foreach ($checkResult['overrides'] as $override) {
+                    if ($override['newFile'] === $realPath) {
+                        $this->logWarning(sprintf(
+                            "Überschreibung: Sektion '%s', Key '%s' wird von '%s' auf '%s' geändert (Datei: %s -> %s)",
+                            $override['section'],
+                            $override['key'] ?? '(Skalarer Wert)',
+                            $this->formatValue($override['originalValue']),
+                            $this->formatValue($override['newValue']),
+                            basename($override['originalFile']),
+                            basename($override['newFile'])
+                        ));
+                    }
+                }
+            }
+
             $configType = $this->detectConfigType($data);
             $parsedConfig = $configType->parse($data);
 
@@ -190,12 +226,59 @@ class ConfigLoader {
     }
 
     /**
+     * Formatiert einen Wert für die Log-Ausgabe.
+     *
+     * @param mixed $value Der zu formatierende Wert
+     * @return string Der formatierte Wert
+     */
+    private function formatValue(mixed $value): string {
+        if ($value === null) {
+            return 'null';
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (is_array($value)) {
+            return json_encode($value);
+        }
+        return (string) $value;
+    }
+
+    /**
      * Lädt alle Konfigurationsdateien erneut
      */
     public function reload(): void {
         $this->config = [];
         $this->loadedFiles = []; // Setzt die geladenen Dateien zurück
+        $this->duplicateChecker->reset(); // Setzt den Duplikat-Checker zurück
         $this->loadConfigFiles($this->filePaths, true, true);
+    }
+
+    /**
+     * Gibt die Liste der geladenen Konfigurationsdateien zurück.
+     *
+     * @return array Liste der absoluten Pfade der geladenen Dateien
+     */
+    public function getLoadedFiles(): array {
+        return $this->loadedFiles;
+    }
+
+    /**
+     * Prüft die geladenen Konfigurationsdateien auf Duplikate und Überschreibungen.
+     *
+     * @return array Assoziatives Array mit 'duplicates' und 'overrides'
+     */
+    public function checkForDuplicates(): array {
+        return $this->duplicateChecker->checkConfigLoader($this);
+    }
+
+    /**
+     * Gibt den Duplikat-Checker zurück.
+     *
+     * @return ConfigDuplicateChecker
+     */
+    public function getDuplicateChecker(): ConfigDuplicateChecker {
+        return $this->duplicateChecker;
     }
 
     /**
