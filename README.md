@@ -99,6 +99,81 @@ if (empty($errors)) {
 }
 ```
 
+### ConfigAbstract - Projekt-Konfigurationsklassen
+
+Die abstrakte `ConfigAbstract`-Klasse ermöglicht es, eigene Projekt-Konfigurationsklassen mit minimalem Aufwand zu erstellen. Sie stellt Singleton-Pattern, ConfigLoader/CommandBuilder-Integration und Standard-Funktionalität bereit.
+
+**Eigene Config-Klasse erstellen:**
+
+```php
+use ConfigToolkit\Contracts\Abstracts\ConfigAbstract;
+
+class Config extends ConfigAbstract {
+    protected static function getDefaultConfigDir(): string {
+        return __DIR__ . '/../config';
+    }
+
+    protected static function getProjectName(): string {
+        return 'my-project';
+    }
+}
+
+// Verwendung
+$config = Config::getInstance();
+
+// Konfigurationswerte abrufen
+$value = $config->getConfig('Database', 'host', 'localhost');
+$section = $config->getSection('Logging');
+
+// Shell-Befehle bauen
+$command = $config->buildCommand('pdftotext', [
+    '[PDF-FILE]' => '/path/to/file.pdf',
+    '[TEXT-FILE]' => '/tmp/output.txt'
+]);
+
+// Java-Befehle bauen
+$javaCmd = $config->buildJavaCommand('pdfbox', [
+    '[INPUT]' => '/path/to/input.pdf'
+]);
+
+// Verfügbarkeit prüfen
+if ($config->isExecutableAvailable('tesseract')) {
+    // OCR ist verfügbar
+}
+
+// Debug-Modus
+$config->setDebug(true);
+$isDebug = $config->isDebugEnabled();
+
+// Logging
+$level = $config->getLogLevel(); // 'debug', 'info', etc.
+$path = $config->getLogPath();
+
+// Version abrufen (aus composer.json oder VERSION-Datei)
+$version = $config->getVersion();
+```
+
+**Verfügbare Methoden:**
+
+| Methode | Beschreibung |
+| ------- | ------------ |
+| `getInstance()` | Gibt die Singleton-Instanz zurück |
+| `resetInstance()` | Setzt die Singleton-Instanz zurück (für Tests) |
+| `getConfigLoader()` | Gibt den internen ConfigLoader zurück |
+| `getCommandBuilder()` | Gibt den internen CommandBuilder zurück |
+| `getConfig($section, $key, $default)` | Holt einen Konfigurationswert |
+| `getSection($section)` | Gibt eine komplette Sektion zurück |
+| `buildCommand($name, $replacements, $extra)` | Baut einen Shell-Befehl |
+| `buildJavaCommand($name, $replacements, $extra)` | Baut einen Java-Befehl |
+| `isExecutableAvailable($name)` | Prüft ob ein Executable verfügbar ist |
+| `getExecutablePath($name)` | Gibt den Pfad eines Executables zurück |
+| `getLogLevel()` | Gibt den konfigurierten Log-Level zurück |
+| `getLogPath()` | Gibt den Log-Pfad zurück |
+| `getLogType()` | Gibt den Log-Typ zurück |
+| `isDebugEnabled()` | Prüft ob Debug-Modus aktiv ist |
+| `setDebug($bool)` | Aktiviert/Deaktiviert Debug-Modus |
+| `getVersion()` | Gibt die Projekt-Version zurück |
+
 ---
 
 ## Beispiel-Konfigurationsdateien
@@ -229,7 +304,7 @@ Für komplexere Strukturen mit verschachtelten Werten:
 ## Unterstützte ConfigTypes
 
 | ConfigType | Beschreibung | Erkennungsmerkmal |
-|------------|--------------|-------------------|
+| ---------- | ------------ | ----------------- |
 | `StructuredConfigType` | Standard key/value/enabled-Struktur | Arrays mit `key`, `value`, `enabled` |
 | `AdvancedStructuredConfigType` | Erweiterte Struktur mit flachen Arrays | Verschachtelte Arrays ohne Executable-Keys |
 | `ExecutableConfigType` | Executable-Pfade mit Argumenten | `path` vorhanden, kein `windowsPath`/`linuxPath` |
@@ -241,7 +316,7 @@ Für komplexere Strukturen mit verschachtelten Werten:
 Platzhalter werden in eckigen Klammern definiert und beim Aufruf ersetzt:
 
 | Platzhalter | Beschreibung |
-|-------------|--------------|
+| ----------- | ------------ |
 | `[INPUT]` | Eingabedatei |
 | `[OUTPUT]` | Ausgabedatei |
 | `[PDF-FILE]` | PDF-Dateipfad |
