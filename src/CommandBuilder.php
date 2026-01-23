@@ -19,6 +19,7 @@ use ERRORToolkit\Traits\ErrorLog;
  * 
  * Ersetzt Platzhalter in Argumenten und escaped alle Werte sicher.
  * Unterstützt sowohl shellExecutables als auch javaExecutables.
+ * Plattformübergreifend kompatibel (Linux/Windows).
  * 
  * @example
  * $builder = new CommandBuilder($configLoader);
@@ -30,6 +31,7 @@ class CommandBuilder {
 
     private ConfigLoader $configLoader;
     private string $defaultSection;
+    private bool $isWindows;
 
     /**
      * @param ConfigLoader $configLoader Geladener ConfigLoader mit Executable-Konfiguration
@@ -38,6 +40,7 @@ class CommandBuilder {
     public function __construct(ConfigLoader $configLoader, string $defaultSection = 'shellExecutables') {
         $this->configLoader = $configLoader;
         $this->defaultSection = $defaultSection;
+        $this->isWindows = strtolower(PHP_OS_FAMILY) === 'windows';
     }
 
     /**
@@ -179,13 +182,24 @@ class CommandBuilder {
 
         foreach ($arguments as $arg) {
             $resolvedArg = $arg;
+            $wasPlaceholderOnly = false;
 
+            // Prüfen ob das Argument nur ein Platzhalter war
             foreach ($replacements as $placeholder => $value) {
+                if ($arg === $placeholder) {
+                    $wasPlaceholderOnly = true;
+                }
                 $resolvedArg = str_replace($placeholder, $value, $resolvedArg);
             }
 
-            // Nur escapen wenn nicht bereits ein Shell-Redirect o.ä. enthalten
-            if (!$this->containsShellOperator($resolvedArg)) {
+            // Argumente überspringen, die nur ein Platzhalter waren und jetzt leer sind
+            // (z.B. [PASSWORD] ohne Wert), aber nicht Argumente die absichtlich leer sein sollen
+            if ($wasPlaceholderOnly && trim($resolvedArg) === '') {
+                continue;
+            }
+
+            // Nur escapen wenn nicht bereits escaped oder Shell-Operatoren enthalten
+            if (!$this->shouldSkipEscaping($resolvedArg)) {
                 $resolved[] = escapeshellarg($resolvedArg);
             } else {
                 $resolved[] = $resolvedArg;
@@ -196,14 +210,73 @@ class CommandBuilder {
     }
 
     /**
-     * Prüft ob ein Argument Shell-Operatoren enthält (die nicht escaped werden sollen).
+     * Prüft ob ein Argument nicht escaped werden soll.
+     * 
+     * Überspringt Escaping wenn:
+     * - Shell-Operatoren enthalten sind (2>&1, |, >, <)
+     * - Der Wert bereits escaped aussieht (beginnt mit ' oder ")
+     * - Mehrere escapte Werte enthalten sind (z.B. '/file1' '/file2')
+     * - Null-Devices verwendet werden (/dev/null, NUL)
+     * 
+     * Berücksichtigt plattformspezifische Unterschiede (Linux/Windows).
      */
-    private function containsShellOperator(string $arg): bool {
-        // Typische Shell-Operatoren die nicht escaped werden sollen
-        return str_contains($arg, '2>&1')
+    private function shouldSkipEscaping(string $arg): bool {
+        // Shell-Operatoren (plattformübergreifend)
+        if (
+            str_contains($arg, '2>&1')
             || str_contains($arg, '|')
             || str_contains($arg, '>')
-            || str_contains($arg, '<');
+            || str_contains($arg, '<')
+        ) {
+            return true;
+        }
+
+        // Null-Devices - plattformspezifisch
+        if (!$this->isWindows && str_contains($arg, '/dev/null')) {
+            return true;
+        }
+        if ($this->isWindows && preg_match('/\bNUL\b/i', $arg)) {
+            return true;
+        }
+
+        // Warnung bei falscher Plattform-Verwendung von Null-Devices
+        if ($this->isWindows && str_contains($arg, '/dev/null')) {
+            $this->logWarning("'/dev/null' funktioniert nicht unter Windows. Verwende 'NUL' stattdessen.");
+        }
+        if (!$this->isWindows && preg_match('/\bNUL\b/i', $arg)) {
+            $this->logWarning("'NUL' erzeugt unter Linux eine Datei. Verwende '/dev/null' stattdessen.");
+        }
+
+        // Windows-spezifisches Escape-Zeichen
+        if ($this->isWindows && str_contains($arg, '^')) {
+            return true;
+        }
+
+        // Bereits escaped - Linux-Style (Single Quotes)
+        if (
+            !$this->isWindows
+            && str_starts_with($arg, "'") && str_ends_with($arg, "'")
+        ) {
+            return true;
+        }
+
+        // Bereits escaped - Windows oder Double Quotes (beide Plattformen)
+        if (str_starts_with($arg, '"') && str_ends_with($arg, '"')) {
+            return true;
+        }
+
+        // Mehrere escapte Werte (z.B. für tiffcp mit mehreren Input-Dateien)
+        // Linux: '/path1' '/path2'
+        if (!$this->isWindows && preg_match("/^'[^']*'(\s+'[^']*')+$/", $arg)) {
+            return true;
+        }
+
+        // Windows: "path1" "path2"
+        if ($this->isWindows && preg_match('/^"[^"]*"(\s+"[^"]*")+$/', $arg)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
