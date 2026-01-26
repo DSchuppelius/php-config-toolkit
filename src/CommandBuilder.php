@@ -75,7 +75,7 @@ class CommandBuilder {
             $resolvedArgs[] = escapeshellarg($arg);
         }
 
-        $command = escapeshellcmd($path);
+        $command = escapeshellarg($path);
         if (!empty($resolvedArgs)) {
             $command .= ' ' . implode(' ', $resolvedArgs);
         }
@@ -119,7 +119,7 @@ class CommandBuilder {
             $resolvedArgs[] = escapeshellarg($arg);
         }
 
-        $command = escapeshellcmd($javaPath) . ' -jar ' . escapeshellarg($jarPath);
+        $command = escapeshellarg($javaPath) . ' -jar ' . escapeshellarg($jarPath);
         if (!empty($resolvedArgs)) {
             $command .= ' ' . implode(' ', $resolvedArgs);
         }
