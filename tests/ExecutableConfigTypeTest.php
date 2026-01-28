@@ -502,12 +502,27 @@ class ExecutableConfigTypeTest extends TestCase {
      */
     public function testAllSupportedInstallers(): void {
         $supportedInstallers = [
-            'apt', 'apt-get', 'dnf', 'yum', 'pacman', 'zypper', 'brew',
-            'pip', 'pip3', 'pipx',
-            'npm', 'yarn',
-            'composer', 'gem', 'cargo', 'go',
-            'snap', 'flatpak',
-            'winget', 'choco', 'scoop',
+            'apt',
+            'apt-get',
+            'dnf',
+            'yum',
+            'pacman',
+            'zypper',
+            'brew',
+            'pip',
+            'pip3',
+            'pipx',
+            'npm',
+            'yarn',
+            'composer',
+            'gem',
+            'cargo',
+            'go',
+            'snap',
+            'flatpak',
+            'winget',
+            'choco',
+            'scoop',
             'manual'
         ];
 
