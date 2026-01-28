@@ -69,6 +69,70 @@ if (empty($errors)) {
 }
 ```
 
+### Executable-Konfiguration mit Package-Manager
+
+Das Toolkit unterstützt die Definition von Executables mit verschiedenen Paketmanagern über das `installer`-Feld:
+
+```json
+{
+  "pythonTools": {
+    "pdf2docx": {
+      "path": "pdf2docx",
+      "required": false,
+      "description": "PDF zu DOCX Konverter",
+      "package": "pdf2docx",
+      "installer": "pipx"
+    },
+    "black": {
+      "path": "black",
+      "required": false,
+      "package": "black",
+      "installer": "pip"
+    }
+  },
+  "systemTools": {
+    "imagemagick": {
+      "path": "convert",
+      "required": false,
+      "package": "imagemagick",
+      "installer": "apt"
+    }
+  },
+  "nodeTools": {
+    "prettier": {
+      "path": "prettier",
+      "required": false,
+      "package": "prettier",
+      "installer": "npm"
+    }
+  }
+}
+```
+
+#### Unterstützte Installer
+
+| Installer | Beschreibung |
+|-----------|--------------|
+| `apt`, `apt-get` | Debian/Ubuntu Paketmanager |
+| `dnf`, `yum` | Fedora/RHEL/CentOS Paketmanager |
+| `pacman` | Arch Linux Paketmanager |
+| `zypper` | openSUSE Paketmanager |
+| `brew` | macOS/Linux Homebrew |
+| `pip`, `pip3` | Python Pip |
+| `pipx` | Python Pipx (isolierte Umgebungen) |
+| `npm`, `yarn` | Node.js Paketmanager |
+| `composer` | PHP Composer |
+| `gem` | Ruby Gems |
+| `cargo` | Rust Cargo |
+| `go` | Go Modules |
+| `snap` | Snap Packages |
+| `flatpak` | Flatpak Packages |
+| `winget` | Windows Package Manager |
+| `choco` | Windows Chocolatey |
+| `scoop` | Windows Scoop |
+| `manual` | Manuelle Installation (keine automatische Installation) |
+```
+
 ## Unterstützte ConfigTypes
 
 | ConfigType | Beschreibung |

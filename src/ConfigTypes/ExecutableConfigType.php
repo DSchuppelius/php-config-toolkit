@@ -23,6 +23,35 @@ use UnexpectedValueException;
  */
 class ExecutableConfigType extends ConfigTypeAbstract {
     /**
+     * Liste unterstützter Paket-Installer/Package-Manager.
+     * Diese werden verwendet um Programme korrekt zu installieren.
+     */
+    protected const SUPPORTED_INSTALLERS = [
+        'apt'       => true, // Debian/Ubuntu apt-get
+        'apt-get'   => true, // Debian/Ubuntu apt-get (alias)
+        'dnf'       => true, // Fedora/RHEL dnf
+        'yum'       => true, // CentOS/RHEL yum
+        'pacman'    => true, // Arch Linux pacman
+        'zypper'    => true, // openSUSE zypper
+        'brew'      => true, // macOS/Linux Homebrew
+        'pip'       => true, // Python pip
+        'pip3'      => true, // Python pip3
+        'pipx'      => true, // Python pipx (isolierte Umgebungen)
+        'npm'       => true, // Node.js npm
+        'yarn'      => true, // Node.js yarn
+        'composer'  => true, // PHP Composer
+        'gem'       => true, // Ruby gem
+        'cargo'     => true, // Rust cargo
+        'go'        => true, // Go modules
+        'snap'      => true, // Snap packages
+        'flatpak'   => true, // Flatpak packages
+        'winget'    => true, // Windows winget
+        'choco'     => true, // Windows Chocolatey
+        'scoop'     => true, // Windows Scoop
+        'manual'    => true, // Manuelle Installation (keine automatische Installation)
+    ];
+
+    /**
      * Liste bekannter sicherer System-Executables (lowercase für schnellen Vergleich).
      * Enthält sowohl Windows (.exe) als auch Linux/Unix Varianten.
      */
@@ -119,6 +148,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     'files2Check'    => $files2Check,
                     'folders2Check'  => $folders2Check,
                     'package'        => $executable['package'] ?? null,
+                    'installer'      => $executable['installer'] ?? 'apt', // apt, pip, pipx, npm, brew, etc.
                 ];
             }
         }
@@ -218,6 +248,17 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                     $error = $this->getFolderUsabilityError((string)$folder);
                     if ($error !== null) {
                         $errors[] = "Ordner '{$folder}' für '{$name}' in '{$category}': {$error}";
+                    }
+                }
+
+                // Validiere installer-Feld falls vorhanden
+                if (isset($executable['installer'])) {
+                    $installer = $executable['installer'];
+                    if (!is_string($installer)) {
+                        $errors[] = "Ungültiger 'installer' für '{$name}' in '{$category}' - muss ein String sein.";
+                    } elseif (!isset(self::SUPPORTED_INSTALLERS[strtolower($installer)])) {
+                        $supportedList = implode(', ', array_keys(self::SUPPORTED_INSTALLERS));
+                        $errors[] = "Unbekannter 'installer' '{$installer}' für '{$name}' in '{$category}'. Unterstützt: {$supportedList}";
                     }
                 }
             }

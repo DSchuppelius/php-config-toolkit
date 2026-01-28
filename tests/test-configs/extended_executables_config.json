@@ -5,7 +5,9 @@
             "required": true,
             "description": "Network ping utility",
             "arguments": ["-c", "1"],
-            "debugArguments": ["-c", "1", "-v"]
+            "debugArguments": ["-c", "1", "-v"],
+            "package": "iputils-ping",
+            "installer": "apt"
         },
         "cmd": {
             "path": "cmd.exe",
@@ -27,14 +29,96 @@
             "description": "Java Runtime Environment",
             "arguments": ["-version"],
             "debugArguments": ["-version", "-verbose"],
-            "files2Check": []
+            "files2Check": [],
+            "package": "default-jre",
+            "installer": "apt"
         },
         "node": {
             "path": "node",
             "required": false,
             "description": "Node.js JavaScript runtime",
             "arguments": ["--version"],
-            "debugArguments": ["--version"]
+            "debugArguments": ["--version"],
+            "package": "nodejs",
+            "installer": "apt"
+        }
+    },
+    "pythonExecutables": {
+        "pdf2docx": {
+            "path": "pdf2docx",
+            "required": false,
+            "description": "PDF zu DOCX Konverter",
+            "arguments": ["convert"],
+            "debugArguments": ["convert", "--debug"],
+            "package": "pdf2docx",
+            "installer": "pipx"
+        },
+        "black": {
+            "path": "black",
+            "required": false,
+            "description": "Python Code Formatter",
+            "arguments": [],
+            "debugArguments": ["--verbose"],
+            "package": "black",
+            "installer": "pipx"
+        },
+        "youtube-dl": {
+            "path": "youtube-dl",
+            "required": false,
+            "description": "YouTube Video Downloader",
+            "arguments": [],
+            "debugArguments": ["--verbose"],
+            "package": "youtube-dl",
+            "installer": "pip"
+        },
+        "yt-dlp": {
+            "path": "yt-dlp",
+            "required": false,
+            "description": "YouTube Video Downloader (Fork)",
+            "arguments": [],
+            "debugArguments": ["--verbose"],
+            "package": "yt-dlp",
+            "installer": "pipx"
+        }
+    },
+    "npmExecutables": {
+        "prettier": {
+            "path": "prettier",
+            "required": false,
+            "description": "Code Formatter",
+            "arguments": ["--check"],
+            "debugArguments": ["--check", "--debug-check"],
+            "package": "prettier",
+            "installer": "npm"
+        },
+        "eslint": {
+            "path": "eslint",
+            "required": false,
+            "description": "JavaScript Linter",
+            "arguments": [],
+            "debugArguments": ["--debug"],
+            "package": "eslint",
+            "installer": "npm"
+        }
+    },
+    "imageTools": {
+        "heif-convert": {
+            "path": "heif-convert",
+            "required": false,
+            "description": "HEIF/HEIC Bildkonverter",
+            "arguments": [],
+            "debugArguments": [],
+            "package": "libheif-examples",
+            "installer": "apt"
+        },
+        "convert": {
+            "path": "convert",
+            "required": false,
+            "description": "ImageMagick Konverter",
+            "arguments": [],
+            "debugArguments": ["-verbose"],
+            "package": "imagemagick",
+            "installer": "apt"
         }
     }
 }
