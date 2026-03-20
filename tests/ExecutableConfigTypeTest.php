@@ -386,4 +386,165 @@ class ExecutableConfigTypeTest extends TestCase {
         $this->assertSame('Test tool with description', $result['tools']['test_with_description']['description']);
         $this->assertSame('', $result['tools']['test_without_description']['description']);
     }
+
+    /**
+     * Testet das installer-Feld für verschiedene Paketmanager
+     */
+    public function testInstallerField(): void {
+        $data = [
+            'pythonTools' => [
+                'pdf2docx' => [
+                    'path' => 'pdf2docx',
+                    'required' => false,
+                    'description' => 'PDF zu DOCX Konverter',
+                    'package' => 'pdf2docx',
+                    'installer' => 'pipx'
+                ],
+                'black' => [
+                    'path' => 'black',
+                    'required' => false,
+                    'package' => 'black',
+                    'installer' => 'pip'
+                ]
+            ],
+            'npmTools' => [
+                'prettier' => [
+                    'path' => 'prettier',
+                    'required' => false,
+                    'package' => 'prettier',
+                    'installer' => 'npm'
+                ]
+            ],
+            'systemTools' => [
+                'ping' => [
+                    'path' => 'ping',
+                    'required' => false,
+                    'package' => 'iputils-ping',
+                    'installer' => 'apt'
+                ]
+            ]
+        ];
+
+        $result = $this->configType->parse($data);
+
+        // Prüfe dass installer korrekt geparst wird
+        $this->assertSame('pipx', $result['pythonTools']['pdf2docx']['installer']);
+        $this->assertSame('pip', $result['pythonTools']['black']['installer']);
+        $this->assertSame('npm', $result['npmTools']['prettier']['installer']);
+        $this->assertSame('apt', $result['systemTools']['ping']['installer']);
+    }
+
+    /**
+     * Testet den Standard-Installer (apt) wenn keiner angegeben ist
+     */
+    public function testDefaultInstaller(): void {
+        $data = [
+            'tools' => [
+                'ping' => [
+                    'path' => 'ping',
+                    'required' => false,
+                    'package' => 'iputils-ping'
+                    // kein installer angegeben
+                ]
+            ]
+        ];
+
+        $result = $this->configType->parse($data);
+
+        // Standard sollte 'apt' sein
+        $this->assertSame('apt', $result['tools']['ping']['installer']);
+    }
+
+    /**
+     * Testet die Validierung von ungültigen Installer-Werten
+     */
+    public function testInvalidInstallerValidation(): void {
+        $data = [
+            'tools' => [
+                'test' => [
+                    'path' => 'ping',
+                    'required' => false,
+                    'installer' => 'invalid-installer-xyz'
+                ]
+            ]
+        ];
+
+        $errors = $this->configType->validate($data);
+
+        $this->assertNotEmpty($errors);
+        $errorString = implode(' ', $errors);
+        $this->assertStringContainsString("Unbekannter 'installer'", $errorString);
+    }
+
+    /**
+     * Testet die Validierung von nicht-String Installer-Werten
+     */
+    public function testNonStringInstallerValidation(): void {
+        $data = [
+            'tools' => [
+                'test' => [
+                    'path' => 'ping',
+                    'required' => false,
+                    'installer' => ['apt', 'pip'] // Array statt String
+                ]
+            ]
+        ];
+
+        $errors = $this->configType->validate($data);
+
+        $this->assertNotEmpty($errors);
+        $errorString = implode(' ', $errors);
+        $this->assertStringContainsString("muss ein String sein", $errorString);
+    }
+
+    /**
+     * Testet alle unterstützten Installer
+     */
+    public function testAllSupportedInstallers(): void {
+        $supportedInstallers = [
+            'apt',
+            'apt-get',
+            'dnf',
+            'yum',
+            'pacman',
+            'zypper',
+            'brew',
+            'pip',
+            'pip3',
+            'pipx',
+            'npm',
+            'yarn',
+            'composer',
+            'gem',
+            'cargo',
+            'go',
+            'snap',
+            'flatpak',
+            'winget',
+            'choco',
+            'scoop',
+            'manual'
+        ];
+
+        foreach ($supportedInstallers as $installer) {
+            $data = [
+                'tools' => [
+                    'test' => [
+                        'path' => 'ping',
+                        'required' => false,
+                        'installer' => $installer
+                    ]
+                ]
+            ];
+
+            $errors = $this->configType->validate($data);
+
+            // Filtere Fehler die nichts mit dem Installer zu tun haben
+            $installerErrors = array_filter($errors, fn($e) => str_contains($e, 'installer'));
+            $this->assertEmpty($installerErrors, "Installer '{$installer}' sollte valide sein");
+
+            $result = $this->configType->parse($data);
+            $this->assertSame($installer, $result['tools']['test']['installer']);
+        }
+    }
 }

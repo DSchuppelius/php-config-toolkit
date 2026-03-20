@@ -214,6 +214,7 @@ Für Shell-Tools und externe Programme:
       "required": true,
       "description": "PDF to Text Converter",
       "package": "poppler-utils",
+      "installer": "apt",
       "arguments": ["-layout", "-enc", "UTF-8", "[PDF-FILE]", "[TEXT-FILE]"]
     },
     "pdfinfo": {
@@ -238,6 +239,34 @@ Für Shell-Tools und externe Programme:
       "arguments": ["[INPUT]", "[OUTPUT]"]
     }
   },
+  "pythonExecutables": {
+    "pdf2docx": {
+      "path": "pdf2docx",
+      "required": false,
+      "description": "PDF zu DOCX Konverter",
+      "package": "pdf2docx",
+      "installer": "pipx",
+      "arguments": ["convert", "[INPUT]", "[OUTPUT]"]
+    },
+    "yt-dlp": {
+      "path": "yt-dlp",
+      "required": false,
+      "description": "YouTube Video Downloader",
+      "package": "yt-dlp",
+      "installer": "pipx",
+      "arguments": ["[URL]", "-o", "[OUTPUT]"]
+    }
+  },
+  "nodeExecutables": {
+    "prettier": {
+      "path": "prettier",
+      "required": false,
+      "description": "Code Formatter",
+      "package": "prettier",
+      "installer": "npm",
+      "arguments": ["--write", "[FILE]"]
+    }
+  },
   "javaExecutables": {
     "pdfbox": {
       "path": "/usr/local/lib/pdfbox-app.jar",
@@ -248,6 +277,31 @@ Für Shell-Tools und externe Programme:
   }
 }
 ```
+
+#### Unterstützte Installer
+
+Das `installer`-Feld gibt an, mit welchem Paketmanager das Tool installiert werden soll. **Wenn nicht angegeben, wird `apt` als Standard verwendet.**
+
+| Installer | Beschreibung |
+| --------- | ------------ |
+| `apt`, `apt-get` | Debian/Ubuntu Paketmanager (Standard) |
+| `dnf`, `yum` | Fedora/RHEL/CentOS Paketmanager |
+| `pacman` | Arch Linux Paketmanager |
+| `zypper` | openSUSE Paketmanager |
+| `brew` | macOS/Linux Homebrew |
+| `pip`, `pip3` | Python Pip |
+| `pipx` | Python Pipx (isolierte Umgebungen) |
+| `npm`, `yarn` | Node.js Paketmanager |
+| `composer` | PHP Composer |
+| `gem` | Ruby Gems |
+| `cargo` | Rust Cargo |
+| `go` | Go Modules |
+| `snap` | Snap Packages |
+| `flatpak` | Flatpak Packages |
+| `winget` | Windows Package Manager |
+| `choco` | Windows Chocolatey |
+| `scoop` | Windows Scoop |
+| `manual` | Manuelle Installation (keine automatische Installation) |
 
 ### Cross-Platform Executable-Konfiguration (CrossPlatformExecutableConfigType)
 
