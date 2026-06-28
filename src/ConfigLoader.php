@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
  * Singleton-Klasse zum Laden und Verwalten von JSON-Konfigurationsdateien.
  * Unterstützt automatische Typ-Erkennung durch das Plugin-System.
  */
-class ConfigLoader {
+final class ConfigLoader {
     use ErrorLog;
 
     private static ?self $instance = null;
@@ -160,7 +160,7 @@ class ConfigLoader {
     protected function detectConfigType(array $data): ConfigTypeInterface {
         foreach ($this->classLoader->getClasses() as $class) {
             if ($class::matches($data)) {
-                return new $class();
+                return new $class;
             }
         }
         $this->logErrorAndThrow(Exception::class, "Unbekannter Konfigurationstyp in der aktuellen Datei");
@@ -219,7 +219,7 @@ class ConfigLoader {
         }
 
         if (is_array($value)) {
-            return array_map(fn($item) => $this->applyPlaceholders($item, $params), $value);
+            return array_map(fn ($item) => $this->applyPlaceholders($item, $params), $value);
         }
 
         return $value;
@@ -274,8 +274,6 @@ class ConfigLoader {
 
     /**
      * Gibt den Duplikat-Checker zurück.
-     *
-     * @return ConfigDuplicateChecker
      */
     public function getDuplicateChecker(): ConfigDuplicateChecker {
         return $this->duplicateChecker;

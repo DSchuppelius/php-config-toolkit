@@ -12,8 +12,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use ConfigToolkit\ConfigDuplicateChecker;
-use ConfigToolkit\ConfigLoader;
+use ConfigToolkit\{ConfigDuplicateChecker, ConfigLoader};
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,30 +33,30 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die Erkennung von Duplikaten innerhalb einer Datei
      */
-    public function testDetectsDuplicatesWithinFile(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_detects_duplicates_within_file(): void {
+        $checker = new ConfigDuplicateChecker;
         $duplicates = $checker->checkFileForDuplicates($this->testConfigsPath . 'duplicate_config.json');
 
         $this->assertNotEmpty($duplicates, 'Es sollten Duplikate erkannt werden');
 
         // Prüfe, dass das Duplikat für "logFile" in der Logger-Sektion erkannt wurde
-        $logFileDuplicates = array_filter($duplicates, fn($d) => $d['key'] === 'logFile' && $d['section'] === 'Logger');
+        $logFileDuplicates = array_filter($duplicates, fn ($d) => $d['key'] === 'logFile' && $d['section'] === 'Logger');
         $this->assertNotEmpty($logFileDuplicates, 'Duplikat für logFile sollte erkannt werden');
 
         // Prüfe, dass das Duplikat für "enabled" in der Archive-Sektion erkannt wurde
-        $enabledDuplicates = array_filter($duplicates, fn($d) => $d['key'] === 'enabled' && $d['section'] === 'Archive');
+        $enabledDuplicates = array_filter($duplicates, fn ($d) => $d['key'] === 'enabled' && $d['section'] === 'Archive');
         $this->assertNotEmpty($enabledDuplicates, 'Duplikat für enabled sollte erkannt werden');
 
         // Prüfe, dass logLevel als Duplikat erkannt wird (auch wenn deaktiviert)
-        $logLevelDuplicates = array_filter($duplicates, fn($d) => $d['key'] === 'logLevel' && $d['section'] === 'Logger');
+        $logLevelDuplicates = array_filter($duplicates, fn ($d) => $d['key'] === 'logLevel' && $d['section'] === 'Logger');
         $this->assertNotEmpty($logLevelDuplicates, 'Duplikat für logLevel sollte erkannt werden');
     }
 
     /**
      * Testet, dass eine valide Konfiguration keine Duplikate hat
      */
-    public function testNoDuplicatesInValidConfig(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_no_duplicates_in_valid_config(): void {
+        $checker = new ConfigDuplicateChecker;
         $duplicates = $checker->checkFileForDuplicates($this->testConfigsPath . 'valid_config.json');
 
         $this->assertEmpty($duplicates, 'Valide Konfiguration sollte keine Duplikate haben');
@@ -66,8 +65,8 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die Erkennung von Überschreibungen zwischen Dateien
      */
-    public function testDetectsOverridesBetweenFiles(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_detects_overrides_between_files(): void {
+        $checker = new ConfigDuplicateChecker;
         $result = $checker->checkFilesForDuplicatesAndOverrides([
             $this->testConfigsPath . 'valid_config.json',
             $this->testConfigsPath . 'override_config.json',
@@ -77,7 +76,7 @@ class ConfigDuplicateCheckerTest extends TestCase {
         $this->assertNotEmpty($result['overrides'], 'Es sollten Überschreibungen erkannt werden');
 
         // Prüfe, dass logFile überschrieben wird
-        $logFileOverrides = array_filter($result['overrides'], fn($o) => $o['key'] === 'logFile');
+        $logFileOverrides = array_filter($result['overrides'], fn ($o) => $o['key'] === 'logFile');
         $this->assertNotEmpty($logFileOverrides, 'Überschreibung für logFile sollte erkannt werden');
 
         // Prüfe die Details der Überschreibung
@@ -89,14 +88,14 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die Integration mit ConfigLoader
      */
-    public function testCheckConfigLoader(): void {
+    public function test_check_config_loader(): void {
         $loader = ConfigLoader::getInstance();
         $loader->loadConfigFiles([
             $this->testConfigsPath . 'valid_config.json',
             $this->testConfigsPath . 'override_config.json',
         ]);
 
-        $checker = new ConfigDuplicateChecker();
+        $checker = new ConfigDuplicateChecker;
         $result = $checker->checkConfigLoader($loader);
 
         $this->assertArrayHasKey('duplicates', $result);
@@ -107,7 +106,7 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die Convenience-Methode im ConfigLoader
      */
-    public function testConfigLoaderCheckForDuplicates(): void {
+    public function test_config_loader_check_for_duplicates(): void {
         $loader = ConfigLoader::getInstance();
         $loader->loadConfigFiles([
             $this->testConfigsPath . 'duplicate_config.json',
@@ -122,8 +121,8 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die Helper-Methoden des Checkers
      */
-    public function testCheckerHelperMethods(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_checker_helper_methods(): void {
+        $checker = new ConfigDuplicateChecker;
 
         // Vor dem Check sollten keine Issues vorhanden sein
         $this->assertFalse($checker->hasDuplicates());
@@ -140,8 +139,8 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die Reset-Funktionalität
      */
-    public function testReset(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_reset(): void {
+        $checker = new ConfigDuplicateChecker;
         $checker->checkFileForDuplicates($this->testConfigsPath . 'duplicate_config.json');
 
         $this->assertTrue($checker->hasDuplicates());
@@ -155,8 +154,8 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet die formatierte Ausgabe
      */
-    public function testFormatResults(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_format_results(): void {
+        $checker = new ConfigDuplicateChecker;
         $checker->checkFileForDuplicates($this->testConfigsPath . 'duplicate_config.json');
 
         $formatted = $checker->formatResults();
@@ -169,8 +168,8 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet das Verhalten bei nicht existierender Datei
      */
-    public function testNonExistentFile(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_non_existent_file(): void {
+        $checker = new ConfigDuplicateChecker;
         $duplicates = $checker->checkFileForDuplicates('/non/existent/file.json');
 
         $this->assertEmpty($duplicates);
@@ -179,8 +178,8 @@ class ConfigDuplicateCheckerTest extends TestCase {
     /**
      * Testet das Verhalten bei ungültiger JSON-Datei
      */
-    public function testInvalidJsonFile(): void {
-        $checker = new ConfigDuplicateChecker();
+    public function test_invalid_json_file(): void {
+        $checker = new ConfigDuplicateChecker;
         $duplicates = $checker->checkFileForDuplicates($this->testConfigsPath . 'invalid_config.json');
 
         // Sollte ein leeres Array zurückgeben (oder die Duplikate, falls die Datei trotzdem parsbar ist)

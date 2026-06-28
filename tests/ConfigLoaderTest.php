@@ -28,7 +28,7 @@ class ConfigLoaderTest extends TestCase {
         $this->extendedExecutablesConfigPath = __DIR__ . '/test-configs/extended_executables_config.json';
     }
 
-    public function testCanLoadValidConfig(): void {
+    public function test_can_load_valid_config(): void {
         $config = ConfigLoader::getInstance(ConsoleLoggerFactory::getLogger());
         $config->loadConfigFile($this->validConfigPath);
 
@@ -38,7 +38,7 @@ class ConfigLoaderTest extends TestCase {
         $this->assertTrue($config->get('Archive', 'enabled'));
     }
 
-    public function testCanLoadAdvValidConfig(): void {
+    public function test_can_load_adv_valid_config(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->advancedConfigPath);
 
@@ -50,7 +50,7 @@ class ConfigLoaderTest extends TestCase {
         $this->assertIsArray($config->get('DatevDMSMapping'));
     }
 
-    public function testCanLoadPostmanConfig(): void {
+    public function test_can_load_postman_config(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->postmanConfigPath);
 
@@ -59,14 +59,14 @@ class ConfigLoaderTest extends TestCase {
         $this->assertIsArray($config->get('values'));
     }
 
-    public function testCanLoadinValidConfig(): void {
+    public function test_can_loadin_valid_config(): void {
         $this->expectException(Exception::class);
 
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->invalidConfigPath, true);
     }
 
-    public function testCanLoadExecutablesConfig(): void {
+    public function test_can_load_executables_config(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->executablesConfigPath);
 
@@ -77,7 +77,7 @@ class ConfigLoaderTest extends TestCase {
         $this->assertTrue($ping['required']);
     }
 
-    public function testCanLoadCrossPlattformExecutablesConfig(): void {
+    public function test_can_load_cross_plattform_executables_config(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->crossPlatformExecutablesConfigPath);
 
@@ -92,7 +92,7 @@ class ConfigLoaderTest extends TestCase {
         $this->assertTrue($editor['required']);
     }
 
-    public function testThrowsExceptionForMissingConfigFile(): void {
+    public function test_throws_exception_for_missing_config_file(): void {
         $this->expectException(Exception::class);
         $this->expectExceptionMessage("Konfigurationsdatei nicht gefunden");
 
@@ -100,13 +100,13 @@ class ConfigLoaderTest extends TestCase {
         $config->loadConfigFile(__DIR__ . '/test-configs/non_existent.json', true);
     }
 
-    public function testGetWithReplaceParams(): void {
+    public function test_get_with_replace_params(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->crossPlatformExecutablesConfigPath);
 
         $params = [
-            "[INPUT]"  => "/tmp/input.jpg",
-            "[OUTPUT]" => "/tmp/output.png"
+            "[INPUT]" => "/tmp/input.jpg",
+            "[OUTPUT]" => "/tmp/output.png",
         ];
 
         $convertedCommand = $config->getWithReplaceParams("shellExecutables", "editor", $params);
@@ -123,7 +123,7 @@ class ConfigLoaderTest extends TestCase {
     /**
      * Testet die erweiterte Executable-Suche in klassischen Windows-Ordnern
      */
-    public function testExtendedExecutablesConfig(): void {
+    public function test_extended_executables_config(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->extendedExecutablesConfigPath);
 
@@ -159,7 +159,7 @@ class ConfigLoaderTest extends TestCase {
     /**
      * Testet die Behandlung nicht existierender Executables
      */
-    public function testNonExistentExecutables(): void {
+    public function test_non_existent_executables(): void {
         $config = ConfigLoader::getInstance();
         $config->loadConfigFile($this->extendedExecutablesConfigPath);
 
@@ -172,7 +172,7 @@ class ConfigLoaderTest extends TestCase {
     /**
      * Testet die files2Check Funktionalität mit einem separaten Test
      */
-    public function testFiles2CheckFunctionality(): void {
+    public function test_files2_check_functionality(): void {
         // Erstelle temporäre Testdateien für files2Check Test
         $tempFile1 = tempnam(sys_get_temp_dir(), 'test_file_1_');
         $tempFile2 = tempnam(sys_get_temp_dir(), 'test_file_2_');
@@ -182,12 +182,12 @@ class ConfigLoaderTest extends TestCase {
                 'toolWithFiles' => [
                     'path' => 'ping',
                     'required' => false,
-                    'files2Check' => [$tempFile1, $tempFile2]
-                ]
-            ]
+                    'files2Check' => [$tempFile1, $tempFile2],
+                ],
+            ],
         ];
 
-        $configType = new \ConfigToolkit\ConfigTypes\ExecutableConfigType();
+        $configType = new \ConfigToolkit\ConfigTypes\ExecutableConfigType;
         $result = $configType->parse($testConfig);
 
         $this->assertIsArray($result['testTools']['toolWithFiles']);
@@ -201,7 +201,7 @@ class ConfigLoaderTest extends TestCase {
     /**
      * Testet die Validierung von Executable-Konfigurationen
      */
-    public function testExecutableValidation(): void {
+    public function test_executable_validation(): void {
         $config = ConfigLoader::getInstance();
 
         // Dies sollte ohne Fehler laden

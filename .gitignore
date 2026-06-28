@@ -414,3 +414,6 @@ phpunit.xml
 /.buildpath
 /.project
 /.settings/
+
+# PHPStan tmpDir (Cache, nicht committen)
+/var/phpstan

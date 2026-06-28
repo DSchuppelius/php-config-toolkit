@@ -39,7 +39,7 @@ abstract class ConfigTypeAbstract implements ConfigTypeInterface {
                 'float', 'double' => 0.0,
                 'int', 'integer', 'number', 'timestamp' => 0,
                 'bool', 'boolean' => false,
-                'array', 'json' => [],
+                'array', 'json', 'list' => [],
                 'null' => null,
                 default => '',
             };
@@ -52,7 +52,7 @@ abstract class ConfigTypeAbstract implements ConfigTypeInterface {
             'date' => $this->castToDate($value),
             'datetime' => $this->castToDateTime($value),
             'bool', 'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
-            'array', 'json' => $this->castToArray($value),
+            'array', 'json', 'list' => $this->castToArray($value),
             'null' => null,
             default => (string) $value,
         };

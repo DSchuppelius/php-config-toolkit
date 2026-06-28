@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use ConfigToolkit\CommandBuilder;
-use ConfigToolkit\ConfigLoader;
+use ConfigToolkit\{CommandBuilder, ConfigLoader};
 use ConfigToolkit\Contracts\Abstracts\ConfigAbstract;
 use PHPUnit\Framework\TestCase;
 
@@ -44,21 +43,21 @@ class ConfigAbstractTest extends TestCase {
         ConfigLoader::resetInstance();
     }
 
-    public function testGetInstance(): void {
+    public function test_get_instance(): void {
         $config = TestConfig::getInstance();
 
         $this->assertInstanceOf(ConfigAbstract::class, $config);
         $this->assertInstanceOf(TestConfig::class, $config);
     }
 
-    public function testSingletonPattern(): void {
+    public function test_singleton_pattern(): void {
         $config1 = TestConfig::getInstance();
         $config2 = TestConfig::getInstance();
 
         $this->assertSame($config1, $config2);
     }
 
-    public function testResetInstance(): void {
+    public function test_reset_instance(): void {
         $config1 = TestConfig::getInstance();
         TestConfig::resetInstance();
         $config2 = TestConfig::getInstance();
@@ -66,19 +65,19 @@ class ConfigAbstractTest extends TestCase {
         $this->assertNotSame($config1, $config2);
     }
 
-    public function testGetConfigLoader(): void {
+    public function test_get_config_loader(): void {
         $config = TestConfig::getInstance();
 
         $this->assertInstanceOf(ConfigLoader::class, $config->getConfigLoader());
     }
 
-    public function testGetCommandBuilder(): void {
+    public function test_get_command_builder(): void {
         $config = TestConfig::getInstance();
 
         $this->assertInstanceOf(CommandBuilder::class, $config->getCommandBuilder());
     }
 
-    public function testGetConfig(): void {
+    public function test_get_config(): void {
         $config = TestConfig::getInstance();
 
         // Sollte den Default-Wert zurückgeben wenn Sektion nicht existiert
@@ -86,7 +85,7 @@ class ConfigAbstractTest extends TestCase {
         $this->assertEquals('default', $result);
     }
 
-    public function testGetSection(): void {
+    public function test_get_section(): void {
         $config = TestConfig::getInstance();
 
         // Leere Sektion zurückgeben wenn nicht vorhanden
@@ -94,7 +93,7 @@ class ConfigAbstractTest extends TestCase {
         $this->assertIsArray($result);
     }
 
-    public function testDebugMode(): void {
+    public function test_debug_mode(): void {
         $config = TestConfig::getInstance();
 
         // Standard: Debug nicht aktiviert
@@ -109,7 +108,7 @@ class ConfigAbstractTest extends TestCase {
         $this->assertFalse($config->isDebugEnabled());
     }
 
-    public function testLogLevel(): void {
+    public function test_log_level(): void {
         $config = TestConfig::getInstance();
 
         // Standard LogLevel
@@ -121,7 +120,7 @@ class ConfigAbstractTest extends TestCase {
         $this->assertEquals('debug', $config->getLogLevel());
     }
 
-    public function testGetVersion(): void {
+    public function test_get_version(): void {
         $config = TestConfig::getInstance();
 
         // Sollte einen String zurückgeben (auch 'unknown' ist gültig)
@@ -129,14 +128,14 @@ class ConfigAbstractTest extends TestCase {
         $this->assertIsString($version);
     }
 
-    public function testIsExecutableAvailable(): void {
+    public function test_is_executable_available(): void {
         $config = TestConfig::getInstance();
 
         // Nicht konfiguriertes Executable sollte false zurückgeben
         $this->assertFalse($config->isExecutableAvailable('nonexistent'));
     }
 
-    public function testBuildCommand(): void {
+    public function test_build_command(): void {
         $config = TestConfig::getInstance();
 
         // Nicht konfiguriertes Executable sollte null zurückgeben

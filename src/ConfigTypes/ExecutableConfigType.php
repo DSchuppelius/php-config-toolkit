@@ -27,28 +27,28 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * Diese werden verwendet um Programme korrekt zu installieren.
      */
     protected const SUPPORTED_INSTALLERS = [
-        'apt'       => true, // Debian/Ubuntu apt-get
-        'apt-get'   => true, // Debian/Ubuntu apt-get (alias)
-        'dnf'       => true, // Fedora/RHEL dnf
-        'yum'       => true, // CentOS/RHEL yum
-        'pacman'    => true, // Arch Linux pacman
-        'zypper'    => true, // openSUSE zypper
-        'brew'      => true, // macOS/Linux Homebrew
-        'pip'       => true, // Python pip
-        'pip3'      => true, // Python pip3
-        'pipx'      => true, // Python pipx (isolierte Umgebungen)
-        'npm'       => true, // Node.js npm
-        'yarn'      => true, // Node.js yarn
-        'composer'  => true, // PHP Composer
-        'gem'       => true, // Ruby gem
-        'cargo'     => true, // Rust cargo
-        'go'        => true, // Go modules
-        'snap'      => true, // Snap packages
-        'flatpak'   => true, // Flatpak packages
-        'winget'    => true, // Windows winget
-        'choco'     => true, // Windows Chocolatey
-        'scoop'     => true, // Windows Scoop
-        'manual'    => true, // Manuelle Installation (keine automatische Installation)
+        'apt' => true, // Debian/Ubuntu apt-get
+        'apt-get' => true, // Debian/Ubuntu apt-get (alias)
+        'dnf' => true, // Fedora/RHEL dnf
+        'yum' => true, // CentOS/RHEL yum
+        'pacman' => true, // Arch Linux pacman
+        'zypper' => true, // openSUSE zypper
+        'brew' => true, // macOS/Linux Homebrew
+        'pip' => true, // Python pip
+        'pip3' => true, // Python pip3
+        'pipx' => true, // Python pipx (isolierte Umgebungen)
+        'npm' => true, // Node.js npm
+        'yarn' => true, // Node.js yarn
+        'composer' => true, // PHP Composer
+        'gem' => true, // Ruby gem
+        'cargo' => true, // Rust cargo
+        'go' => true, // Go modules
+        'snap' => true, // Snap packages
+        'flatpak' => true, // Flatpak packages
+        'winget' => true, // Windows winget
+        'choco' => true, // Windows Chocolatey
+        'scoop' => true, // Windows Scoop
+        'manual' => true, // Manuelle Installation (keine automatische Installation)
     ];
 
     /**
@@ -57,36 +57,36 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      */
     protected const KNOWN_SAFE_EXECUTABLES = [
         // Windows
-        'ping.exe'       => true,
-        'cmd.exe'        => true,
+        'ping.exe' => true,
+        'cmd.exe' => true,
         'powershell.exe' => true,
-        'java.exe'       => true,
-        'node.exe'       => true,
-        'python.exe'     => true,
-        'git.exe'        => true,
-        'where.exe'      => true,
+        'java.exe' => true,
+        'node.exe' => true,
+        'python.exe' => true,
+        'git.exe' => true,
+        'where.exe' => true,
         // Linux/Unix
-        'ping'           => true,
-        'bash'           => true,
-        'sh'             => true,
-        'zsh'            => true,
-        'java'           => true,
-        'node'           => true,
-        'python'         => true,
-        'python3'        => true,
-        'git'            => true,
-        'which'          => true,
-        'file'           => true,
-        'cat'            => true,
-        'ls'             => true,
-        'grep'           => true,
-        'find'           => true,
-        'curl'           => true,
-        'wget'           => true,
-        'php'            => true,
-        'composer'       => true,
-        'npm'            => true,
-        'yarn'           => true,
+        'ping' => true,
+        'bash' => true,
+        'sh' => true,
+        'zsh' => true,
+        'java' => true,
+        'node' => true,
+        'python' => true,
+        'python3' => true,
+        'git' => true,
+        'which' => true,
+        'file' => true,
+        'cat' => true,
+        'ls' => true,
+        'grep' => true,
+        'find' => true,
+        'curl' => true,
+        'wget' => true,
+        'php' => true,
+        'composer' => true,
+        'npm' => true,
+        'yarn' => true,
     ];
 
     protected bool $isWindows;
@@ -118,37 +118,37 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $required = $this->normalizeBool($executable['required'] ?? false);
 
                 $executablePath = $this->getExecutablePath($executable);
-                $arguments      = $this->getArguments($executable);
+                $arguments = $this->getArguments($executable);
                 $debugArguments = $this->getDebugArguments($executable);
-                $files2Check    = $this->getFiles2Check($executable);
-                $folders2Check  = $this->getFolders2Check($executable);
-                $fileErrors     = $this->checkRequiredFilesWithErrors($files2Check);
-                $folderErrors   = $this->checkRequiredFoldersWithErrors($folders2Check);
+                $files2Check = $this->getFiles2Check($executable);
+                $folders2Check = $this->getFolders2Check($executable);
+                $fileErrors = $this->checkRequiredFilesWithErrors($files2Check);
+                $folderErrors = $this->checkRequiredFoldersWithErrors($folders2Check);
 
                 if ($required && empty($executablePath)) {
                     $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
                 }
 
                 if ($required && !empty($fileErrors)) {
-                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
+                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
                     $this->logErrorAndThrow(Exception::class, "Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
                 }
 
                 if ($required && !empty($folderErrors)) {
-                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
+                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
                     $this->logErrorAndThrow(Exception::class, "Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
                 }
 
                 $parsed[$category][$name] = [
-                    'path'           => $executablePath, // aufgelöster Pfad oder null
-                    'required'       => $required,
-                    'description'    => $executable['description'] ?? '',
-                    'arguments'      => $arguments,
+                    'path' => $executablePath, // aufgelöster Pfad oder null
+                    'required' => $required,
+                    'description' => $executable['description'] ?? '',
+                    'arguments' => $arguments,
                     'debugArguments' => $debugArguments,
-                    'files2Check'    => $files2Check,
-                    'folders2Check'  => $folders2Check,
-                    'package'        => $executable['package'] ?? null,
-                    'installer'      => $executable['installer'] ?? 'apt', // apt, pip, pipx, npm, brew, etc.
+                    'files2Check' => $files2Check,
+                    'folders2Check' => $folders2Check,
+                    'package' => $executable['package'] ?? null,
+                    'installer' => $executable['installer'] ?? 'apt', // apt, pip, pipx, npm, brew, etc.
                 ];
             }
         }
@@ -213,7 +213,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 }
 
                 $required = $this->normalizeBool($executable['required'] ?? false);
-                $path     = $this->getExecutablePath($executable);
+                $path = $this->getExecutablePath($executable);
 
                 if ($path === null && $required) {
                     $errors[] = "Kein ausführbarer Pfad für '{$name}' in '{$category}'.";
@@ -237,7 +237,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
                 $files2Check = $this->getFiles2Check($executable);
                 foreach ($files2Check as $file) {
-                    $error = $this->getFileUsabilityError((string)$file);
+                    $error = $this->getFileUsabilityError((string) $file);
                     if ($error !== null) {
                         $errors[] = "Datei '{$file}' für '{$name}' in '{$category}': {$error}";
                     }
@@ -245,7 +245,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
                 $folders2Check = $this->getFolders2Check($executable);
                 foreach ($folders2Check as $folder) {
-                    $error = $this->getFolderUsabilityError((string)$folder);
+                    $error = $this->getFolderUsabilityError((string) $folder);
                     if ($error !== null) {
                         $errors[] = "Ordner '{$folder}' für '{$name}' in '{$category}': {$error}";
                     }
@@ -375,7 +375,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     protected function checkRequiredFilesWithErrors(array $paths): array {
         $errors = [];
         foreach ($paths as $path) {
-            $error = $this->getFileUsabilityError((string)$path);
+            $error = $this->getFileUsabilityError((string) $path);
             if ($error !== null) {
                 $errors[$path] = $error;
             }
@@ -390,7 +390,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     protected function checkRequiredFoldersWithErrors(array $paths): array {
         $errors = [];
         foreach ($paths as $path) {
-            $error = $this->getFolderUsabilityError((string)$path);
+            $error = $this->getFolderUsabilityError((string) $path);
             if ($error !== null) {
                 $errors[$path] = $error;
             }
@@ -515,7 +515,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return self::$canUseExecCache = false;
         }
 
-        $disabled = (string)ini_get('disable_functions');
+        $disabled = (string) ini_get('disable_functions');
         if ($disabled === '') {
             return self::$canUseExecCache = true;
         }
@@ -543,7 +543,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return self::$openBasedirPathsCache;
         }
 
-        $openBasedir = (string)ini_get('open_basedir');
+        $openBasedir = (string) ini_get('open_basedir');
         if ($openBasedir === '') {
             return self::$openBasedirPathsCache = [];
         }
@@ -641,8 +641,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         // Prüfen auf absolute UNIX- oder Windows-Pfade
-        $isAbsoluteUnixPath    = (bool)preg_match('/^\//', $command);
-        $isAbsoluteWindowsPath = (bool)preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
+        $isAbsoluteUnixPath = (bool) preg_match('/^\//', $command);
+        $isAbsoluteWindowsPath = (bool) preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
 
         if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
             return file_exists($command) ? $command : null;
@@ -660,14 +660,14 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             $exitCode = 0;
 
             $lookupCommand = $this->isWindows ? 'where' : 'which';
-            $nullDevice    = $this->isWindows ? 'nul' : '/dev/null';
+            $nullDevice = $this->isWindows ? 'nul' : '/dev/null';
 
             @exec($lookupCommand . ' ' . escapeshellarg($command) . ' 2>' . $nullDevice, $output, $exitCode);
 
             // Falls mehrere Treffer, teste nur die ersten 3
             $pathsToTest = array_slice($output, 0, 3);
             foreach ($pathsToTest as $line) {
-                $line = trim((string)$line);
+                $line = trim((string) $line);
                 if ($line !== '' && file_exists($line)) {
                     if ($this->isKnownSafeExecutable($line)) {
                         return $line;
@@ -712,12 +712,18 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             '/sbin',
             '/opt/bin',
             '/snap/bin',
-            getenv('HOME') . '/.local/bin',
-            getenv('HOME') . '/bin',
         ];
 
+        // HOME-basierte Pfade nur ergänzen, wenn HOME tatsächlich gesetzt ist,
+        // sonst würden ungültige Pfade wie "/.local/bin" entstehen.
+        $home = getenv('HOME');
+        if (is_string($home) && $home !== '') {
+            $standardPaths[] = $home . '/.local/bin';
+            $standardPaths[] = $home . '/bin';
+        }
+
         foreach ($standardPaths as $dir) {
-            if ($dir === false || $dir === '' || !is_dir($dir)) {
+            if (!is_dir($dir)) {
                 continue;
             }
 
@@ -753,10 +759,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $extensions = [''];
         if ($this->isWindows) {
             $pathext = getenv('PATHEXT') ?: '.EXE;.BAT;.CMD;.COM';
+            // array_filter entfernt leere Einträge; den "ohne Endung"-Fall ergänzen wir explizit.
             $extensions = array_values(array_filter(array_map('trim', explode(';', $pathext))));
-            if (!in_array('', $extensions, true)) {
-                $extensions[] = '';
-            }
+            $extensions[] = '';
         }
 
         foreach ($dirs as $dir) {
@@ -847,7 +852,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     protected function searchInProgramFiles(string $baseCommand): ?string {
         $programDirs = [
             'C:\Program Files',
-            'C:\Program Files (x86)'
+            'C:\Program Files (x86)',
         ];
 
         foreach ($programDirs as $programDir) {

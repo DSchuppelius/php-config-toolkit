@@ -21,9 +21,9 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
         $hasStructuredArray = false;
 
         foreach ($data as $items) {
-            if (static::isFlatArray($items)) {
+            if (self::isFlatArray($items)) {
                 $hasFlatArray = true;
-            } elseif (static::hasKeyValueStructure($items) || static::isKeyValueMapping($items)) {
+            } elseif (static::hasKeyValueStructure($items) || self::isKeyValueMapping($items)) {
                 $hasStructuredArray = true;
             } else {
                 return false; // Ungültige Struktur gefunden
@@ -40,9 +40,9 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
         $parsed = [];
 
         foreach ($data as $section => $items) {
-            if (static::isFlatArray($items)) {
+            if (self::isFlatArray($items)) {
                 $parsed[$section] = $items;
-            } elseif (static::isKeyValueMapping($items)) {
+            } elseif (self::isKeyValueMapping($items)) {
                 $parsed[$section] = $items;
             } else {
                 $parsed[$section] = $this->parseStructuredSection($section, $items);
@@ -64,12 +64,12 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
                 continue;
             }
 
-            if (static::isFlatArray($items)) {
+            if (self::isFlatArray($items)) {
                 // Flache Arrays sind immer valide (Typen bereits in isFlatArray geprüft)
                 continue;
             }
 
-            if (static::isKeyValueMapping($items)) {
+            if (self::isKeyValueMapping($items)) {
                 // Key-Value-Mappings sind valide, wenn alle Keys Strings sind
                 continue;
             }
@@ -130,7 +130,7 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
             return false;
         }
 
-        return array_reduce($items, fn($carry, $item) => $carry && (is_string($item) || is_numeric($item) || is_bool($item)), true);
+        return array_reduce($items, fn ($carry, $item) => $carry && (is_string($item) || is_numeric($item) || is_bool($item)), true);
     }
 
     /**

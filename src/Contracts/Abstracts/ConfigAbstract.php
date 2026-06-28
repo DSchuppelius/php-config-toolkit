@@ -14,44 +14,46 @@ declare(strict_types=1);
 namespace ConfigToolkit\Contracts\Abstracts;
 
 use Composer\InstalledVersions;
-use ConfigToolkit\CommandBuilder;
-use ConfigToolkit\ConfigLoader;
+use ConfigToolkit\{CommandBuilder, ConfigLoader};
 use ERRORToolkit\Traits\ErrorLog;
 use Psr\Log\LogLevel;
 
 /**
  * Abstrakte Basis-Konfigurationsklasse mit Singleton-Pattern.
- * 
+ *
  * Stellt allgemeine Konfigurationsfunktionalität bereit:
  * - Singleton-Instanz-Management
  * - ConfigLoader und CommandBuilder Integration
  * - Logging-Konfiguration
  * - Versions-Info
  * - Debug-Modus
- * 
+ *
  * @example
  * ```php
  * class Config extends ConfigAbstract {
  *     protected static function getDefaultConfigDir(): string {
  *         return __DIR__ . '/../../config';
  *     }
- *     
+ *
  *     protected static function getProjectName(): string {
  *         return 'my-project';
  *     }
  * }
- * 
+ *
  * $config = Config::getInstance();
  * $command = $config->buildCommand('pdftotext', ['[INPUT]' => 'file.pdf']);
  * ```
+ *
+ * @phpstan-consistent-constructor
  */
 abstract class ConfigAbstract {
     use ErrorLog;
 
     protected const COMPOSER_FILE = __DIR__ . '/../../../../composer.json';
-    protected const VERSION_FILE  = __DIR__ . '/../../../../VERSION';
+    protected const VERSION_FILE = __DIR__ . '/../../../../VERSION';
 
-    protected static ?self $instance = null;
+    /** @var array<class-string<static>, static> */
+    protected static array $instances = [];
 
     protected ConfigLoader $configLoader;
     protected CommandBuilder $commandBuilder;
@@ -59,7 +61,7 @@ abstract class ConfigAbstract {
 
     /**
      * Konstruktor - lädt Konfiguration aus dem angegebenen Verzeichnis.
-     * 
+     *
      * @param string|null $configDir Verzeichnis mit den JSON-Konfigurationsdateien
      * @param bool $throwOnError Bei true wird eine Exception geworfen wenn eine Konfigurationsdatei ungültig ist
      */
@@ -87,22 +89,21 @@ abstract class ConfigAbstract {
 
     /**
      * Gibt die Singleton-Instanz zurück.
-     * 
+     *
      * @param string|null $configDir Optionales Konfigurationsverzeichnis (nur beim ersten Aufruf relevant)
-     * @return static
      */
     public static function getInstance(?string $configDir = null): static {
-        if (static::$instance === null) {
-            static::$instance = new static($configDir);
+        if (!isset(static::$instances[static::class])) {
+            static::$instances[static::class] = new static($configDir);
         }
-        return static::$instance;
+        return static::$instances[static::class];
     }
 
     /**
      * Setzt die Singleton-Instanz zurück (nützlich für Tests).
      */
     public static function resetInstance(): void {
-        static::$instance = null;
+        unset(static::$instances[static::class]);
     }
 
     // ----------------------------------------------------------
@@ -118,11 +119,10 @@ abstract class ConfigAbstract {
 
     /**
      * Holt einen Konfigurationswert.
-     * 
+     *
      * @param string $section Sektion in der Konfiguration
      * @param string|null $key Schlüssel (null = gesamte Sektion)
      * @param mixed $default Standardwert
-     * @return mixed
      */
     public function getConfig(string $section, ?string $key = null, mixed $default = null): mixed {
         return $this->configLoader->get($section, $key, $default);
@@ -130,9 +130,8 @@ abstract class ConfigAbstract {
 
     /**
      * Gibt eine komplette Konfigurationssektion zurück.
-     * 
+     *
      * @param string $section Sektion in der Konfiguration
-     * @return array
      */
     public function getSection(string $section): array {
         return $this->configLoader->get($section, null, []);
@@ -151,9 +150,8 @@ abstract class ConfigAbstract {
 
     /**
      * Prüft ob ein Executable verfügbar ist.
-     * 
+     *
      * @param string $name Name des Executables
-     * @return bool
      */
     public function isExecutableAvailable(string $name): bool {
         return $this->commandBuilder->isAvailable($name);
@@ -161,9 +159,8 @@ abstract class ConfigAbstract {
 
     /**
      * Gibt den Pfad zu einem Executable zurück.
-     * 
+     *
      * @param string $name Name des Executables
-     * @return string|null
      */
     public function getExecutablePath(string $name): ?string {
         return $this->commandBuilder->getPath($name);
@@ -171,7 +168,7 @@ abstract class ConfigAbstract {
 
     /**
      * Baut einen Shell-Befehl mit ersetzten Platzhaltern.
-     * 
+     *
      * @param string $name Name des Executables
      * @param array $replacements Platzhalter-Ersetzungen (z.B. ['[INPUT]' => 'file.pdf'])
      * @param array $extraArgs Zusätzliche Argumente
@@ -183,7 +180,7 @@ abstract class ConfigAbstract {
 
     /**
      * Baut einen Java-Befehl (java -jar ...) mit ersetzten Platzhaltern.
-     * 
+     *
      * @param string $name Name des Java-Executables
      * @param array $replacements Platzhalter-Ersetzungen
      * @param array $extraArgs Zusätzliche Argumente
@@ -200,7 +197,7 @@ abstract class ConfigAbstract {
     /**
      * Gibt den konfigurierten Log-Level zurück.
      * Bei aktiviertem Debug-Modus wird immer DEBUG zurückgegeben.
-     * 
+     *
      * @return string PSR-3 LogLevel
      */
     public function getLogLevel(): string {
@@ -212,8 +209,6 @@ abstract class ConfigAbstract {
 
     /**
      * Gibt den konfigurierten Log-Pfad zurück.
-     * 
-     * @return string|null
      */
     public function getLogPath(): ?string {
         return $this->configLoader->get('Logging', 'path');
@@ -221,8 +216,6 @@ abstract class ConfigAbstract {
 
     /**
      * Gibt den konfigurierten Log-Typ zurück.
-     * 
-     * @return string
      */
     public function getLogType(): string {
         return $this->configLoader->get('Logging', 'log', 'null');
@@ -230,8 +223,6 @@ abstract class ConfigAbstract {
 
     /**
      * Prüft ob der Debug-Modus aktiviert ist.
-     * 
-     * @return bool
      */
     public function isDebugEnabled(): bool {
         return $this->debugOverride ?? $this->configLoader->get('Debugging', 'debug', false);
@@ -239,8 +230,6 @@ abstract class ConfigAbstract {
 
     /**
      * Aktiviert oder deaktiviert den Debug-Modus programmatisch.
-     * 
-     * @param bool $debug
      */
     public function setDebug(bool $debug): void {
         $this->debugOverride = $debug;
@@ -252,11 +241,9 @@ abstract class ConfigAbstract {
 
     /**
      * Gibt die Projekt-Version zurück.
-     * 
+     *
      * Versucht zuerst über Composer's InstalledVersions,
      * dann aus einer VERSION-Datei, sonst 'unknown'.
-     * 
-     * @return string
      */
     public function getVersion(): string {
         $composerFile = static::getComposerFilePath();
@@ -294,8 +281,6 @@ abstract class ConfigAbstract {
     /**
      * Gibt den Pfad zur composer.json zurück.
      * Kann in konkreten Klassen überschrieben werden.
-     * 
-     * @return string
      */
     protected static function getComposerFilePath(): string {
         return dirname(static::getDefaultConfigDir()) . '/composer.json';
@@ -304,8 +289,6 @@ abstract class ConfigAbstract {
     /**
      * Gibt den Pfad zur VERSION-Datei zurück.
      * Kann in konkreten Klassen überschrieben werden.
-     * 
-     * @return string
      */
     protected static function getVersionFilePath(): string {
         return dirname(static::getDefaultConfigDir()) . '/VERSION';

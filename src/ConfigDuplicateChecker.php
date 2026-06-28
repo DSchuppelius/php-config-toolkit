@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Klasse zur Erkennung von Duplikaten und Überschreibungen in Konfigurationsdateien.
- * 
+ *
  * Erkennt:
  * - Doppelte Keys innerhalb derselben Sektion einer Datei
  * - Überschreibungen von Werten beim Laden mehrerer Dateien
@@ -226,8 +226,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Gibt alle gefundenen Duplikate zurück.
-     *
-     * @return array
      */
     public function getDuplicates(): array {
         return $this->duplicates;
@@ -235,8 +233,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Gibt alle gefundenen Überschreibungen zurück.
-     *
-     * @return array
      */
     public function getOverrides(): array {
         return $this->overrides;
@@ -244,8 +240,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Prüft, ob Duplikate gefunden wurden.
-     *
-     * @return bool
      */
     public function hasDuplicates(): bool {
         return !empty($this->duplicates);
@@ -253,8 +247,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Prüft, ob Überschreibungen gefunden wurden.
-     *
-     * @return bool
      */
     public function hasOverrides(): bool {
         return !empty($this->overrides);
@@ -262,8 +254,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Prüft, ob Probleme (Duplikate oder Überschreibungen) gefunden wurden.
-     *
-     * @return bool
      */
     public function hasIssues(): bool {
         return $this->hasDuplicates() || $this->hasOverrides();
@@ -280,8 +270,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Formatiert die Ergebnisse als lesbaren String.
-     *
-     * @return string
      */
     public function formatResults(): string {
         $output = [];
@@ -329,9 +317,6 @@ class ConfigDuplicateChecker {
 
     /**
      * Formatiert einen Wert für die Ausgabe.
-     *
-     * @param mixed $value
-     * @return string
      */
     protected function formatValue(mixed $value): string {
         if ($value === null) {

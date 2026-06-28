@@ -16,11 +16,11 @@ use ERRORToolkit\Traits\ErrorLog;
 
 /**
  * Baut Shell-Befehle aus der Executable-Konfiguration.
- * 
+ *
  * Ersetzt Platzhalter in Argumenten und escaped alle Werte sicher.
  * Unterstützt sowohl shellExecutables als auch javaExecutables.
  * Plattformübergreifend kompatibel (Linux/Windows).
- * 
+ *
  * @example
  * $builder = new CommandBuilder($configLoader);
  * $command = $builder->build('pdftotext', ['[INPUT]' => '/path/to.pdf', '[OUTPUT]' => '/path/to.txt']);
@@ -45,7 +45,7 @@ class CommandBuilder {
 
     /**
      * Baut einen Shell-Befehl aus der Konfiguration.
-     * 
+     *
      * @param string $name Name des Executables in der Konfiguration
      * @param array $replacements Platzhalter-Ersetzungen (z.B. ['[INPUT]' => '/path/to/file'])
      * @param array $extraArgs Zusätzliche Argumente die angehängt werden
@@ -86,7 +86,7 @@ class CommandBuilder {
 
     /**
      * Baut einen Java-Befehl (java -jar ...) aus der Konfiguration.
-     * 
+     *
      * @param string $name Name des Java-Executables (z.B. 'pdfbox')
      * @param array $replacements Platzhalter-Ersetzungen
      * @param array $extraArgs Zusätzliche Argumente
@@ -130,7 +130,7 @@ class CommandBuilder {
 
     /**
      * Prüft ob ein Executable in der Konfiguration vorhanden und verfügbar ist.
-     * 
+     *
      * @param string $name Name des Executables
      * @param string|null $section Config-Sektion (null = defaultSection)
      * @return bool True wenn Executable konfiguriert und Pfad gefunden
@@ -142,7 +142,7 @@ class CommandBuilder {
 
     /**
      * Gibt die Konfiguration eines Executables zurück.
-     * 
+     *
      * @param string $name Name des Executables
      * @param string|null $section Config-Sektion (null = defaultSection)
      * @return array|null Die Executable-Konfiguration oder null
@@ -160,7 +160,7 @@ class CommandBuilder {
 
     /**
      * Gibt den Pfad eines Executables zurück.
-     * 
+     *
      * @param string $name Name des Executables
      * @param string|null $section Config-Sektion (null = defaultSection)
      * @return string|null Der Pfad oder null wenn nicht gefunden
@@ -172,7 +172,7 @@ class CommandBuilder {
 
     /**
      * Ersetzt Platzhalter in den Argumenten und escaped sie.
-     * 
+     *
      * @param array $arguments Original-Argumente mit Platzhaltern
      * @param array $replacements Platzhalter-Ersetzungen
      * @return array Aufgelöste und escapte Argumente
@@ -211,13 +211,13 @@ class CommandBuilder {
 
     /**
      * Prüft ob ein Argument nicht escaped werden soll.
-     * 
+     *
      * Überspringt Escaping wenn:
      * - Shell-Operatoren enthalten sind (2>&1, |, >, <)
      * - Der Wert bereits escaped aussieht (beginnt mit ' oder ")
      * - Mehrere escapte Werte enthalten sind (z.B. '/file1' '/file2')
      * - Null-Devices verwendet werden (/dev/null, NUL)
-     * 
+     *
      * Berücksichtigt plattformspezifische Unterschiede (Linux/Windows).
      */
     private function shouldSkipEscaping(string $arg): bool {
@@ -281,12 +281,11 @@ class CommandBuilder {
 
     /**
      * Erstellt einen CommandBuilder aus Config-Dateien.
-     * 
+     *
      * Convenience-Methode für schnelle Initialisierung.
-     * 
+     *
      * @param array $configFiles Array von Config-Dateipfaden
      * @param string $defaultSection Standard-Sektion für Executables
-     * @return self
      */
     public static function fromConfigFiles(array $configFiles, string $defaultSection = 'shellExecutables'): self {
         $loader = ConfigLoader::getInstance();

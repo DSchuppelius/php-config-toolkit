@@ -18,38 +18,38 @@ class ExecutableConfigTypeTest extends TestCase {
     private bool $isWindows;
 
     protected function setUp(): void {
-        $this->configType = new ExecutableConfigType();
+        $this->configType = new ExecutableConfigType;
         $this->isWindows = strtolower(PHP_OS_FAMILY) === 'windows';
     }
 
     /**
      * Testet die grundlegende Funktionalität der matches() Methode
      */
-    public function testMatches(): void {
+    public function test_matches(): void {
         $validData = [
             'shellExecutables' => [
                 'test' => [
                     'path' => 'test.exe',
-                    'required' => true
-                ]
-            ]
+                    'required' => true,
+                ],
+            ],
         ];
 
         $invalidDataNoPath = [
             'shellExecutables' => [
                 'test' => [
-                    'required' => true
-                ]
-            ]
+                    'required' => true,
+                ],
+            ],
         ];
 
         $invalidDataWithPlatformPath = [
             'shellExecutables' => [
                 'test' => [
                     'path' => 'test.exe',
-                    'windowsPath' => 'test_win.exe'
-                ]
-            ]
+                    'windowsPath' => 'test_win.exe',
+                ],
+            ],
         ];
 
         $this->assertTrue(ExecutableConfigType::matches($validData));
@@ -61,7 +61,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die parse() Methode mit gültigen Daten
      */
-    public function testParseValidData(): void {
+    public function test_parse_valid_data(): void {
         $data = [
             'tools' => [
                 'ping' => [
@@ -69,9 +69,9 @@ class ExecutableConfigTypeTest extends TestCase {
                     'required' => true,
                     'description' => 'Network ping tool',
                     'arguments' => ['-c', '1'],
-                    'debugArguments' => ['-c', '1', '-v']
-                ]
-            ]
+                    'debugArguments' => ['-c', '1', '-v'],
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -90,14 +90,14 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet Exception bei fehlendem required Executable
      */
-    public function testParseThrowsExceptionForMissingRequiredExecutable(): void {
+    public function test_parse_throws_exception_for_missing_required_executable(): void {
         $data = [
             'tools' => [
                 'nonexistent' => [
                     'path' => 'this-does-not-exist-anywhere-on-this-system-really',
-                    'required' => true
-                ]
-            ]
+                    'required' => true,
+                ],
+            ],
         ];
 
         $this->expectException(\Exception::class);
@@ -109,15 +109,15 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die validate() Methode
      */
-    public function testValidate(): void {
+    public function test_validate(): void {
         $validData = [
             'tools' => [
                 'ping' => [
                     'path' => 'ping',
                     'required' => true,
-                    'arguments' => ['-c', '1']
-                ]
-            ]
+                    'arguments' => ['-c', '1'],
+                ],
+            ],
         ];
 
         $invalidData = [
@@ -125,9 +125,9 @@ class ExecutableConfigTypeTest extends TestCase {
                 'test' => [
                     'path' => 'nonexistent-executable-test',
                     'required' => true,
-                    'arguments' => 'invalid-not-array'
-                ]
-            ]
+                    'arguments' => 'invalid-not-array',
+                ],
+            ],
         ];
 
         $validErrors = $this->configType->validate($validData);
@@ -144,7 +144,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die files2Check Funktionalität
      */
-    public function testFiles2Check(): void {
+    public function test_files2_check(): void {
         // Erstelle temporäre Testdateien
         $tempFile1 = tempnam(sys_get_temp_dir(), 'test_file_1_');
         $tempFile2 = tempnam(sys_get_temp_dir(), 'test_file_2_');
@@ -154,9 +154,9 @@ class ExecutableConfigTypeTest extends TestCase {
                 'testTool' => [
                     'path' => 'ping', // Verwende ein existierendes Tool
                     'required' => false,
-                    'files2Check' => [$tempFile1, $tempFile2]
-                ]
-            ]
+                    'files2Check' => [$tempFile1, $tempFile2],
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -169,9 +169,9 @@ class ExecutableConfigTypeTest extends TestCase {
                 'testTool' => [
                     'path' => 'ping',
                     'required' => true,
-                    'files2Check' => [$tempFile1, $tempFile2]
-                ]
-            ]
+                    'files2Check' => [$tempFile1, $tempFile2],
+                ],
+            ],
         ];
 
         $this->expectException(\Exception::class);
@@ -188,7 +188,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Pfadauflösung für absolute Pfade
      */
-    public function testAbsolutePathResolution(): void {
+    public function test_absolute_path_resolution(): void {
         if ($this->isWindows) {
             $absolutePath = 'C:\Windows\System32\ping.exe';
             if (file_exists($absolutePath)) {
@@ -196,9 +196,9 @@ class ExecutableConfigTypeTest extends TestCase {
                     'tools' => [
                         'ping' => [
                             'path' => $absolutePath,
-                            'required' => true
-                        ]
-                    ]
+                            'required' => true,
+                        ],
+                    ],
                 ];
 
                 $result = $this->configType->parse($data);
@@ -211,9 +211,9 @@ class ExecutableConfigTypeTest extends TestCase {
                     'tools' => [
                         'ping' => [
                             'path' => $absolutePath,
-                            'required' => true
-                        ]
-                    ]
+                            'required' => true,
+                        ],
+                    ],
                 ];
 
                 $result = $this->configType->parse($data);
@@ -225,7 +225,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Ausführbarkeits-Prüfung indirekt über die Haupt-API
      */
-    public function testExecutabilityTest(): void {
+    public function test_executability_test(): void {
         // Teste indirekt über findExecutablePath - das ist sicherer als direkte Reflection
         $reflection = new \ReflectionClass($this->configType);
         $findMethod = $reflection->getMethod('findExecutablePath');
@@ -254,7 +254,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Suche in Unterordnern
      */
-    public function testOptimizedPerformance(): void {
+    public function test_optimized_performance(): void {
         $start = microtime(true);
 
         // Teste über die öffentliche getExecutablePath Methode
@@ -282,7 +282,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die gezielte Suche nach Programmen indirekt über die Haupt-API
      */
-    public function testTargetedProgramFilesSearch(): void {
+    public function test_targeted_program_files_search(): void {
         if (!$this->isWindows) {
             $this->markTestSkipped('Dieser Test läuft nur unter Windows');
         }
@@ -292,9 +292,9 @@ class ExecutableConfigTypeTest extends TestCase {
             'tools' => [
                 'testTool' => [
                     'path' => 'qpdf',  // Hypothetisches Tool
-                    'required' => false
-                ]
-            ]
+                    'required' => false,
+                ],
+            ],
         ];
 
         // Parse und validiere die Konfiguration
@@ -322,16 +322,16 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Argumentverarbeitung
      */
-    public function testArgumentProcessing(): void {
+    public function test_argument_processing(): void {
         $data = [
             'tools' => [
                 'test' => [
                     'path' => 'ping',
                     'required' => false,
                     'arguments' => ['-t', '-n', '1'],
-                    'debugArguments' => ['-t', '-n', '1', '-v']
-                ]
-            ]
+                    'debugArguments' => ['-t', '-n', '1', '-v'],
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -343,18 +343,18 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Behandlung leerer oder null-Werte
      */
-    public function testEmptyValueHandling(): void {
+    public function test_empty_value_handling(): void {
         $data = [
             'tools' => [
                 'test1' => [
                     'path' => '',
-                    'required' => false
+                    'required' => false,
                 ],
                 'test2' => [
                     'path' => null,
-                    'required' => false
-                ]
-            ]
+                    'required' => false,
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -366,19 +366,19 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Beschreibungsfelder
      */
-    public function testDescriptionFields(): void {
+    public function test_description_fields(): void {
         $data = [
             'tools' => [
                 'test_with_description' => [
                     'path' => 'ping',
                     'required' => false,
-                    'description' => 'Test tool with description'
+                    'description' => 'Test tool with description',
                 ],
                 'test_without_description' => [
                     'path' => 'ping',
-                    'required' => false
-                ]
-            ]
+                    'required' => false,
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -390,7 +390,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet das installer-Feld für verschiedene Paketmanager
      */
-    public function testInstallerField(): void {
+    public function test_installer_field(): void {
         $data = [
             'pythonTools' => [
                 'pdf2docx' => [
@@ -398,31 +398,31 @@ class ExecutableConfigTypeTest extends TestCase {
                     'required' => false,
                     'description' => 'PDF zu DOCX Konverter',
                     'package' => 'pdf2docx',
-                    'installer' => 'pipx'
+                    'installer' => 'pipx',
                 ],
                 'black' => [
                     'path' => 'black',
                     'required' => false,
                     'package' => 'black',
-                    'installer' => 'pip'
-                ]
+                    'installer' => 'pip',
+                ],
             ],
             'npmTools' => [
                 'prettier' => [
                     'path' => 'prettier',
                     'required' => false,
                     'package' => 'prettier',
-                    'installer' => 'npm'
-                ]
+                    'installer' => 'npm',
+                ],
             ],
             'systemTools' => [
                 'ping' => [
                     'path' => 'ping',
                     'required' => false,
                     'package' => 'iputils-ping',
-                    'installer' => 'apt'
-                ]
-            ]
+                    'installer' => 'apt',
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -437,16 +437,16 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet den Standard-Installer (apt) wenn keiner angegeben ist
      */
-    public function testDefaultInstaller(): void {
+    public function test_default_installer(): void {
         $data = [
             'tools' => [
                 'ping' => [
                     'path' => 'ping',
                     'required' => false,
-                    'package' => 'iputils-ping'
+                    'package' => 'iputils-ping',
                     // kein installer angegeben
-                ]
-            ]
+                ],
+            ],
         ];
 
         $result = $this->configType->parse($data);
@@ -458,15 +458,15 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Validierung von ungültigen Installer-Werten
      */
-    public function testInvalidInstallerValidation(): void {
+    public function test_invalid_installer_validation(): void {
         $data = [
             'tools' => [
                 'test' => [
                     'path' => 'ping',
                     'required' => false,
-                    'installer' => 'invalid-installer-xyz'
-                ]
-            ]
+                    'installer' => 'invalid-installer-xyz',
+                ],
+            ],
         ];
 
         $errors = $this->configType->validate($data);
@@ -479,15 +479,15 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet die Validierung von nicht-String Installer-Werten
      */
-    public function testNonStringInstallerValidation(): void {
+    public function test_non_string_installer_validation(): void {
         $data = [
             'tools' => [
                 'test' => [
                     'path' => 'ping',
                     'required' => false,
-                    'installer' => ['apt', 'pip'] // Array statt String
-                ]
-            ]
+                    'installer' => ['apt', 'pip'], // Array statt String
+                ],
+            ],
         ];
 
         $errors = $this->configType->validate($data);
@@ -500,7 +500,7 @@ class ExecutableConfigTypeTest extends TestCase {
     /**
      * Testet alle unterstützten Installer
      */
-    public function testAllSupportedInstallers(): void {
+    public function test_all_supported_installers(): void {
         $supportedInstallers = [
             'apt',
             'apt-get',
@@ -523,7 +523,7 @@ class ExecutableConfigTypeTest extends TestCase {
             'winget',
             'choco',
             'scoop',
-            'manual'
+            'manual',
         ];
 
         foreach ($supportedInstallers as $installer) {
@@ -532,15 +532,15 @@ class ExecutableConfigTypeTest extends TestCase {
                     'test' => [
                         'path' => 'ping',
                         'required' => false,
-                        'installer' => $installer
-                    ]
-                ]
+                        'installer' => $installer,
+                    ],
+                ],
             ];
 
             $errors = $this->configType->validate($data);
 
             // Filtere Fehler die nichts mit dem Installer zu tun haben
-            $installerErrors = array_filter($errors, fn($e) => str_contains($e, 'installer'));
+            $installerErrors = array_filter($errors, fn ($e) => str_contains($e, 'installer'));
             $this->assertEmpty($installerErrors, "Installer '{$installer}' sollte valide sein");
 
             $result = $this->configType->parse($data);

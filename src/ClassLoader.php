@@ -16,9 +16,9 @@ use ERRORToolkit\Exceptions\FileSystem\FolderNotFoundException;
 use ERRORToolkit\Traits\ErrorLog;
 use Exception;
 use Psr\Log\LoggerInterface;
-use ReflectionClass;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use ReflectionClass;
 use SplFileInfo;
 
 /**
@@ -74,15 +74,13 @@ class ClassLoader {
             $className = $this->getClassNameFromFile($file);
             $this->logDebug("Verarbeite Datei: $file => Klasse: $className");
 
-            if (!class_exists($className)) {
-                if (file_exists($file)) {
-                    require_once $file;
-                }
+            if (!class_exists($className) && file_exists($file)) {
+                require_once $file;
+            }
 
-                if (!class_exists($className)) {
-                    $this->logWarning("Klasse nicht gefunden oder nicht autoloaded: $className");
-                    continue;
-                }
+            if (!class_exists($className)) {
+                $this->logWarning("Klasse nicht gefunden oder nicht autoloaded: $className");
+                continue;
             }
 
             try {

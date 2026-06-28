@@ -10,10 +10,9 @@
 
 declare(strict_types=1);
 
-namespace ConfigToolkit\Tests;
+namespace Tests;
 
-use ConfigToolkit\CommandBuilder;
-use ConfigToolkit\ConfigLoader;
+use ConfigToolkit\{CommandBuilder, ConfigLoader};
 use PHPUnit\Framework\TestCase;
 
 class CommandBuilderTest extends TestCase {
@@ -30,35 +29,35 @@ class CommandBuilderTest extends TestCase {
         ConfigLoader::resetInstance();
     }
 
-    public function testBuildCommandWithReplacements(): void {
+    public function test_build_command_with_replacements(): void {
         // Erstelle temporäre Test-Config mit existierendem Pfad (echo ist überall vorhanden)
         $tempDir = sys_get_temp_dir();
         $tempConfig = $tempDir . '/test_executable_config.json';
-        
+
         $config = [
             'shellExecutables' => [
                 'testcmd' => [
                     'path' => 'echo', // echo existiert auf jedem System
                     'required' => false,
-                    'arguments' => ['-n', '[INPUT]', '[OUTPUT]']
-                ]
-            ]
+                    'arguments' => ['-n', '[INPUT]', '[OUTPUT]'],
+                ],
+            ],
         ];
-        
+
         file_put_contents($tempConfig, json_encode($config));
-        
+
         try {
             ConfigLoader::resetInstance();
             $loader = ConfigLoader::getInstance();
             $loader->loadConfigFile($tempConfig);
-            
+
             $builder = new CommandBuilder($loader);
-            
+
             $command = $builder->build('testcmd', [
                 '[INPUT]' => 'input.pdf',
-                '[OUTPUT]' => 'output.txt'
+                '[OUTPUT]' => 'output.txt',
             ]);
-            
+
             $this->assertNotNull($command);
             $this->assertStringContainsString('echo', $command);
             $this->assertStringContainsString('input.pdf', $command);
@@ -68,40 +67,40 @@ class CommandBuilderTest extends TestCase {
         }
     }
 
-    public function testBuildCommandReturnsNullForMissingExecutable(): void {
+    public function test_build_command_returns_null_for_missing_executable(): void {
         $command = $this->commandBuilder->build('nonexistent', []);
         $this->assertNull($command);
     }
 
-    public function testIsAvailable(): void {
+    public function test_is_available(): void {
         // Erstelle temporäre Test-Config mit existierenden/nicht-existierenden Pfaden
         $tempDir = sys_get_temp_dir();
         $tempConfig = $tempDir . '/test_avail_config.json';
-        
+
         $config = [
             'shellExecutables' => [
                 'available' => [
                     'path' => 'echo', // existiert
                     'required' => false,
-                    'arguments' => []
+                    'arguments' => [],
                 ],
                 'unavailable' => [
                     'path' => 'nonexistent_command_xyz_12345', // existiert nicht
                     'required' => false,
-                    'arguments' => []
-                ]
-            ]
+                    'arguments' => [],
+                ],
+            ],
         ];
-        
+
         file_put_contents($tempConfig, json_encode($config));
-        
+
         try {
             ConfigLoader::resetInstance();
             $loader = ConfigLoader::getInstance();
             $loader->loadConfigFile($tempConfig);
-            
+
             $builder = new CommandBuilder($loader);
-            
+
             $this->assertTrue($builder->isAvailable('available'));
             $this->assertFalse($builder->isAvailable('unavailable'));
             $this->assertFalse($builder->isAvailable('nonexistent'));
@@ -110,46 +109,46 @@ class CommandBuilderTest extends TestCase {
         }
     }
 
-    public function testBuildJavaCommand(): void {
+    public function test_build_java_command(): void {
         // Erstelle temporäre Test-Config
         $tempDir = sys_get_temp_dir();
         $tempConfig = $tempDir . '/test_java_config.json';
-        
+
         // Erstelle eine temporäre JAR-Datei (leer) für den Test
         $tempJar = $tempDir . '/test_pdfbox.jar';
         file_put_contents($tempJar, '');
-        
+
         $config = [
             'shellExecutables' => [
                 'java' => [
                     'path' => 'java', // java ist oft verfügbar
                     'required' => false,
-                    'arguments' => []
-                ]
+                    'arguments' => [],
+                ],
             ],
             'javaExecutables' => [
                 'pdfbox' => [
                     'path' => $tempJar,
                     'required' => false,
-                    'arguments' => ['export:text', '-i', '[INPUT]', '-o', '[OUTPUT]']
-                ]
-            ]
+                    'arguments' => ['export:text', '-i', '[INPUT]', '-o', '[OUTPUT]'],
+                ],
+            ],
         ];
-        
+
         file_put_contents($tempConfig, json_encode($config));
-        
+
         try {
             ConfigLoader::resetInstance();
             $loader = ConfigLoader::getInstance();
             $loader->loadConfigFile($tempConfig);
-            
+
             $builder = new CommandBuilder($loader);
-            
+
             $command = $builder->buildJava('pdfbox', [
                 '[INPUT]' => '/path/to/input.pdf',
-                '[OUTPUT]' => '/path/to/output.txt'
+                '[OUTPUT]' => '/path/to/output.txt',
             ]);
-            
+
             // Falls java nicht installiert ist, wird der Befehl trotzdem gebaut
             // (mit dem konfigurierten Pfad)
             if ($command !== null) {
@@ -166,57 +165,57 @@ class CommandBuilderTest extends TestCase {
         }
     }
 
-    public function testFromConfigFiles(): void {
+    public function test_from_config_files(): void {
         // Erstelle temporäre Test-Config
         $tempDir = sys_get_temp_dir();
         $tempConfig = $tempDir . '/test_from_files_config.json';
-        
+
         $config = [
             'shellExecutables' => [
                 'testcmd' => [
                     'path' => 'echo',
                     'required' => false,
-                    'arguments' => ['--help']
-                ]
-            ]
+                    'arguments' => ['--help'],
+                ],
+            ],
         ];
-        
+
         file_put_contents($tempConfig, json_encode($config));
-        
+
         try {
             ConfigLoader::resetInstance();
             $builder = CommandBuilder::fromConfigFiles([$tempConfig]);
-            
+
             $this->assertTrue($builder->isAvailable('testcmd'));
         } finally {
             unlink($tempConfig);
         }
     }
 
-    public function testGetPath(): void {
+    public function test_get_path(): void {
         // Erstelle temporäre Test-Config
         $tempDir = sys_get_temp_dir();
         $tempConfig = $tempDir . '/test_path_config.json';
-        
+
         $config = [
             'shellExecutables' => [
                 'testcmd' => [
                     'path' => 'echo', // wird zu vollem Pfad aufgelöst
                     'required' => false,
-                    'arguments' => []
-                ]
-            ]
+                    'arguments' => [],
+                ],
+            ],
         ];
-        
+
         file_put_contents($tempConfig, json_encode($config));
-        
+
         try {
             ConfigLoader::resetInstance();
             $loader = ConfigLoader::getInstance();
             $loader->loadConfigFile($tempConfig);
-            
+
             $builder = new CommandBuilder($loader);
-            
+
             $path = $builder->getPath('testcmd');
             $this->assertNotNull($path);
             $this->assertStringContainsString('echo', $path);
@@ -226,34 +225,34 @@ class CommandBuilderTest extends TestCase {
         }
     }
 
-    public function testBuildWithExtraArgs(): void {
+    public function test_build_with_extra_args(): void {
         $tempDir = sys_get_temp_dir();
         $tempConfig = $tempDir . '/test_extra_args_config.json';
-        
+
         $config = [
             'shellExecutables' => [
                 'testcmd' => [
                     'path' => 'echo',
                     'required' => false,
-                    'arguments' => ['[INPUT]']
-                ]
-            ]
+                    'arguments' => ['[INPUT]'],
+                ],
+            ],
         ];
-        
+
         file_put_contents($tempConfig, json_encode($config));
-        
+
         try {
             ConfigLoader::resetInstance();
             $loader = ConfigLoader::getInstance();
             $loader->loadConfigFile($tempConfig);
-            
+
             $builder = new CommandBuilder($loader);
-            
-            $command = $builder->build('testcmd', 
+
+            $command = $builder->build('testcmd',
                 ['[INPUT]' => 'file.txt'],
                 ['--verbose', '--debug']
             );
-            
+
             $this->assertNotNull($command);
             $this->assertStringContainsString('file.txt', $command);
             $this->assertStringContainsString('--verbose', $command);
