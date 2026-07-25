@@ -77,6 +77,8 @@ abstract class ConfigTypeAbstract implements ConfigTypeInterface {
     /**
      * Konvertiert einen Wert in ein Array.
      * JSON-Strings werden dekodiert, Arrays werden direkt zurückgegeben.
+     *
+     * @return array<mixed>
      */
     private function castToArray(mixed $value): array {
         if (is_array($value)) {
@@ -95,16 +97,24 @@ abstract class ConfigTypeAbstract implements ConfigTypeInterface {
 
     /**
      * Parst die Konfigurationsdaten in ein nutzbares Array.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     abstract public function parse(array $data): array;
 
     /**
      * Prüft, ob dieser ConfigType die gegebenen Daten verarbeiten kann.
+     *
+     * @param array<string, mixed> $data
      */
     abstract public static function matches(array $data): bool;
 
     /**
      * Validiert die Konfigurationsdaten und gibt gefundene Fehler zurück.
+     *
+     * @param array<string, mixed> $data
+     * @return list<string>
      */
     abstract public function validate(array $data): array;
 }

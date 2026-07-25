@@ -27,7 +27,7 @@ class ConfigValidator {
      * Validiert eine JSON-Konfigurationsdatei anhand des passenden ConfigTypes.
      *
      * @param string $filePath Pfad zur JSON-Datei.
-     * @return array Liste der Fehler, falls vorhanden, sonst ein leeres Array.
+     * @return list<string> Liste der Fehler, falls vorhanden, sonst ein leeres Array.
      * @throws Exception Falls die Datei nicht gefunden oder ungültig ist.
      */
     public static function validate(string $filePath): array {

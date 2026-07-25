@@ -15,6 +15,9 @@ class StructuredConfigType extends ConfigTypeAbstract {
     /**
      * Parst die strukturierte Konfiguration in ein nutzbares Array.
      *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     *
      * @throws Exception Wenn ein erforderlicher 'key' fehlt.
      */
     public function parse(array $data): array {
@@ -49,6 +52,8 @@ class StructuredConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob dieser ConfigType zur gegebenen Konfiguration passt.
      * Dieser Typ ist der Fallback und wird nur gewählt, wenn kein spezifischerer Typ passt.
+     *
+     * @param array<string, mixed> $data
      */
     public static function matches(array $data): bool {
         if (empty($data)) {
@@ -77,7 +82,8 @@ class StructuredConfigType extends ConfigTypeAbstract {
     /**
      * Validiert die strukturierte Konfiguration.
      *
-     * @return array Liste der gefundenen Validierungsfehler.
+     * @param array<string, mixed> $data
+     * @return list<string> Liste der gefundenen Validierungsfehler.
      */
     public function validate(array $data): array {
         $errors = [];

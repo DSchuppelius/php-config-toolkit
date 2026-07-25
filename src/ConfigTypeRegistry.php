@@ -66,7 +66,14 @@ final class ConfigTypeRegistry {
             $logger
         );
 
-        $classes = $classLoader->getClasses();
+        // ClassLoader filtert bereits auf ConfigTypeInterface; der zusätzliche
+        // is_subclass_of()-Check engt den Typ für die statische Analyse korrekt ein.
+        $classes = [];
+        foreach ($classLoader->getClasses() as $class) {
+            if (is_subclass_of($class, ConfigTypeInterface::class)) {
+                $classes[] = $class;
+            }
+        }
 
         usort($classes, static fn (string $a, string $b): int => (self::PRIORITY[$a] ?? self::DEFAULT_PRIORITY)
             <=> (self::PRIORITY[$b] ?? self::DEFAULT_PRIORITY));
@@ -76,6 +83,8 @@ final class ConfigTypeRegistry {
 
     /**
      * Erkennt den passenden ConfigType für die gegebenen Daten.
+     *
+     * @param array<string, mixed> $data
      *
      * @throws Exception Wenn kein registrierter Typ passt.
      */

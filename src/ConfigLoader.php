@@ -35,9 +35,12 @@ final class ConfigLoader {
     /** @var array<string, self> Registrierte, benannte Instanzen. */
     private static array $instances = [];
 
+    /** @var array<string, mixed> */
     protected array $config = [];
+    /** @var list<string> */
     protected array $filePaths = [];
-    protected array $loadedFiles = []; // Speichert bereits geladene Konfigurationsdateien
+    /** @var list<string> Speichert bereits geladene Konfigurationsdateien */
+    protected array $loadedFiles = [];
     protected ConfigDuplicateChecker $duplicateChecker;
 
     private function __construct(?LoggerInterface $logger = null) {
@@ -166,6 +169,8 @@ final class ConfigLoader {
 
     /**
      * Lädt mehrere Konfigurationsdateien auf einmal
+     *
+     * @param list<string> $filePaths
      */
     public function loadConfigFiles(array $filePaths, bool $throwException = false, bool $forceReload = false): bool {
         $result = true;
@@ -179,6 +184,8 @@ final class ConfigLoader {
 
     /**
      * Erkennt den passenden Konfigurationstyp über die zentrale Registry.
+     *
+     * @param array<string, mixed> $data
      */
     protected function detectConfigType(array $data): ConfigTypeInterface {
         return ConfigTypeRegistry::detect($data, self::getLogger());
@@ -214,7 +221,7 @@ final class ConfigLoader {
      *
      * @param string $section  Die Sektion in der Konfigurationsdatei (z. B. "shellExecutables").
      * @param string $key      Der Schlüssel innerhalb der Sektion (z. B. "convert").
-     * @param array  $params   Ein assoziatives Array mit Platzhalter-Werten (z. B. ['[VAR]' => 'Wert']).
+     * @param array<string, string> $params Ein assoziatives Array mit Platzhalter-Werten (z. B. ['[VAR]' => 'Wert']).
      * @param mixed  $default  Standardwert, falls der Schlüssel nicht existiert.
      * @return mixed           Der Wert aus der Konfiguration mit ersetzten Platzhaltern oder der Standardwert.
      */
@@ -230,6 +237,8 @@ final class ConfigLoader {
 
     /**
      * Ersetzt Platzhalter ([VAR]) in Strings oder Arrays rekursiv.
+     *
+     * @param array<string, string> $params
      */
     private function applyPlaceholders(mixed $value, array $params): mixed {
         if (is_string($value)) {
@@ -257,7 +266,7 @@ final class ConfigLoader {
             return $value ? 'true' : 'false';
         }
         if (is_array($value)) {
-            return json_encode($value);
+            return (string) json_encode($value);
         }
         return (string) $value;
     }
@@ -277,7 +286,7 @@ final class ConfigLoader {
     /**
      * Gibt die Liste der geladenen Konfigurationsdateien zurück.
      *
-     * @return array Liste der absoluten Pfade der geladenen Dateien
+     * @return list<string> Liste der absoluten Pfade der geladenen Dateien
      */
     public function getLoadedFiles(): array {
         return $this->loadedFiles;
@@ -286,7 +295,7 @@ final class ConfigLoader {
     /**
      * Prüft die geladenen Konfigurationsdateien auf Duplikate und Überschreibungen.
      *
-     * @return array Assoziatives Array mit 'duplicates' und 'overrides'
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>}
      */
     public function checkForDuplicates(): array {
         return $this->duplicateChecker->checkConfigLoader($this);

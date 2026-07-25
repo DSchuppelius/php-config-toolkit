@@ -27,17 +27,23 @@ class ConfigDuplicateChecker {
 
     /**
      * Ergebnis der Duplikatprüfung
+     *
+     * @var list<array<string, mixed>>
      */
     protected array $duplicates = [];
 
     /**
      * Ergebnis der Überschreibungsprüfung
+     *
+     * @var list<array<string, mixed>>
      */
     protected array $overrides = [];
 
     /**
      * Speichert den Ursprung jedes Konfigurationswerts
      * Format: ['section']['key'] => ['file' => 'path', 'value' => 'originalValue']
+     *
+     * @var array<string, mixed>
      */
     protected array $valueOrigins = [];
 
@@ -56,8 +62,8 @@ class ConfigDuplicateChecker {
      * zuvor per ingest() verarbeiteten Dateien – ohne erneutes Lesen von der Platte.
      *
      * @param string $filePath Absoluter Pfad der Datei (nur für die Herkunftsangabe)
-     * @param array  $data     Bereits dekodierte JSON-Daten der Datei
-     * @return array{duplicates: array, overrides: array} Neue Befunde für DIESE Datei
+     * @param array<string, mixed> $data Bereits dekodierte JSON-Daten der Datei
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>} Neue Befunde für DIESE Datei
      */
     public function ingest(string $filePath, array $data): array {
         $duplicates = $this->collectDuplicatesFromData($filePath, $data);
@@ -72,9 +78,9 @@ class ConfigDuplicateChecker {
     /**
      * Prüft eine einzelne Konfigurationsdatei auf Duplikate innerhalb der Datei.
      *
-     * @param string     $filePath Pfad zur JSON-Datei
-     * @param array|null $data     Optional bereits geparste Daten; sonst wird die Datei gelesen
-     * @return array Liste der gefundenen Duplikate
+     * @param string $filePath Pfad zur JSON-Datei
+     * @param array<string, mixed>|null $data Optional bereits geparste Daten; sonst wird die Datei gelesen
+     * @return list<array<string, mixed>> Liste der gefundenen Duplikate
      */
     public function checkFileForDuplicates(string $filePath, ?array $data = null): array {
         if ($data === null) {
@@ -93,7 +99,8 @@ class ConfigDuplicateChecker {
     /**
      * Erkennt Duplikate innerhalb einer bereits geparsten Datei (ohne Zustandsänderung).
      *
-     * @return array Liste der gefundenen Duplikate
+     * @param array<string, mixed> $data
+     * @return list<array<string, mixed>> Liste der gefundenen Duplikate
      */
     private function collectDuplicatesFromData(string $filePath, array $data): array {
         $duplicates = [];
@@ -140,8 +147,8 @@ class ConfigDuplicateChecker {
     /**
      * Prüft mehrere Konfigurationsdateien auf Duplikate und Überschreibungen.
      *
-     * @param array $filePaths Liste der zu prüfenden Dateipfade
-     * @return array Assoziatives Array mit 'duplicates' und 'overrides'
+     * @param list<string> $filePaths Liste der zu prüfenden Dateipfade
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>} Assoziatives Array mit 'duplicates' und 'overrides'
      */
     public function checkFilesForDuplicatesAndOverrides(array $filePaths): array {
         $this->reset();
@@ -167,6 +174,8 @@ class ConfigDuplicateChecker {
 
     /**
      * Liest und dekodiert eine JSON-Datei. Gibt null zurück, wenn sie fehlt oder ungültig ist.
+     *
+     * @return array<string, mixed>|null
      */
     private function readJsonFile(string $filePath): ?array {
         if (!file_exists($filePath)) {
@@ -182,14 +191,19 @@ class ConfigDuplicateChecker {
             return null;
         }
 
-        return is_array($data) ? $data : null;
+        if (!is_array($data)) {
+            return null;
+        }
+
+        /** @var array<string, mixed> $data */
+        return $data;
     }
 
     /**
      * Prüft, ob Werte aus dieser Datei vorherige Werte überschreiben würden.
      *
-     * @param string     $filePath Pfad zur JSON-Datei
-     * @param array|null $data     Optional bereits geparste Daten; sonst wird die Datei gelesen
+     * @param string $filePath Pfad zur JSON-Datei
+     * @param array<string, mixed>|null $data Optional bereits geparste Daten; sonst wird die Datei gelesen
      */
     protected function checkForOverrides(string $filePath, ?array $data = null): void {
         if ($data === null) {
@@ -206,7 +220,8 @@ class ConfigDuplicateChecker {
      * Ermittelt Überschreibungen der gegebenen Daten gegenüber dem bisher aufgebauten
      * Herkunftsindex und aktualisiert diesen. Gibt die neuen Überschreibungen zurück.
      *
-     * @return array Liste der neu erkannten Überschreibungen
+     * @param array<string, mixed> $data
+     * @return list<array<string, mixed>> Liste der neu erkannten Überschreibungen
      */
     private function collectOverridesFromData(string $filePath, array $data): array {
         $overrides = [];
@@ -278,7 +293,7 @@ class ConfigDuplicateChecker {
      * Prüft die aktuell im ConfigLoader geladenen Dateien.
      *
      * @param ConfigLoader $loader Die ConfigLoader-Instanz
-     * @return array Assoziatives Array mit 'duplicates' und 'overrides'
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>} Assoziatives Array mit 'duplicates' und 'overrides'
      */
     public function checkConfigLoader(ConfigLoader $loader): array {
         $loadedFiles = $loader->getLoadedFiles();
@@ -287,6 +302,8 @@ class ConfigDuplicateChecker {
 
     /**
      * Gibt alle gefundenen Duplikate zurück.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getDuplicates(): array {
         return $this->duplicates;
@@ -294,6 +311,8 @@ class ConfigDuplicateChecker {
 
     /**
      * Gibt alle gefundenen Überschreibungen zurück.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getOverrides(): array {
         return $this->overrides;
@@ -387,7 +406,7 @@ class ConfigDuplicateChecker {
             return $value ? 'true' : 'false';
         }
         if (is_array($value)) {
-            return json_encode($value);
+            return (string) json_encode($value);
         }
         return (string) $value;
     }

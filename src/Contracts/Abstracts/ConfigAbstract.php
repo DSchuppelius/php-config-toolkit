@@ -131,9 +131,16 @@ abstract class ConfigAbstract {
      * Gibt eine komplette Konfigurationssektion zurück.
      *
      * @param string $section Sektion in der Konfiguration
+     * @return array<string, mixed>
      */
     public function getSection(string $section): array {
-        return $this->configLoader->get($section, null, []);
+        $value = $this->configLoader->get($section, null, []);
+        if (!is_array($value)) {
+            return [];
+        }
+
+        /** @var array<string, mixed> $value */
+        return $value;
     }
 
     // ----------------------------------------------------------
@@ -169,8 +176,8 @@ abstract class ConfigAbstract {
      * Baut einen Shell-Befehl mit ersetzten Platzhaltern.
      *
      * @param string $name Name des Executables
-     * @param array $replacements Platzhalter-Ersetzungen (z.B. ['[INPUT]' => 'file.pdf'])
-     * @param array $extraArgs Zusätzliche Argumente
+     * @param array<string, string> $replacements Platzhalter-Ersetzungen (z.B. ['[INPUT]' => 'file.pdf'])
+     * @param list<string> $extraArgs Zusätzliche Argumente
      * @return string|null Der vollständige Befehl oder null wenn nicht konfiguriert/verfügbar
      */
     public function buildCommand(string $name, array $replacements = [], array $extraArgs = []): ?string {
@@ -181,8 +188,8 @@ abstract class ConfigAbstract {
      * Baut einen Java-Befehl (java -jar ...) mit ersetzten Platzhaltern.
      *
      * @param string $name Name des Java-Executables
-     * @param array $replacements Platzhalter-Ersetzungen
-     * @param array $extraArgs Zusätzliche Argumente
+     * @param array<string, string> $replacements Platzhalter-Ersetzungen
+     * @param list<string> $extraArgs Zusätzliche Argumente
      * @return string|null Der vollständige Befehl oder null wenn nicht konfiguriert
      */
     public function buildJavaCommand(string $name, array $replacements = [], array $extraArgs = []): ?string {

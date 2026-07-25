@@ -48,8 +48,8 @@ class CommandBuilder {
      * Baut einen Shell-Befehl aus der Konfiguration.
      *
      * @param string $name Name des Executables in der Konfiguration
-     * @param array $replacements Platzhalter-Ersetzungen (z.B. ['[INPUT]' => '/path/to/file'])
-     * @param array $extraArgs Zusätzliche Argumente die angehängt werden
+     * @param array<string, string> $replacements Platzhalter-Ersetzungen (z.B. ['[INPUT]' => '/path/to/file'])
+     * @param list<string> $extraArgs Zusätzliche Argumente die angehängt werden
      * @param string|null $section Config-Sektion (null = defaultSection)
      * @return string|null Der vollständige Befehl oder null wenn nicht konfiguriert
      */
@@ -89,8 +89,8 @@ class CommandBuilder {
      * Baut einen Java-Befehl (java -jar ...) aus der Konfiguration.
      *
      * @param string $name Name des Java-Executables (z.B. 'pdfbox')
-     * @param array $replacements Platzhalter-Ersetzungen
-     * @param array $extraArgs Zusätzliche Argumente
+     * @param array<string, string> $replacements Platzhalter-Ersetzungen
+     * @param list<string> $extraArgs Zusätzliche Argumente
      * @param string $javaSection Sektion für Java-Executables
      * @return string|null Der vollständige Befehl oder null wenn nicht konfiguriert
      */
@@ -146,7 +146,7 @@ class CommandBuilder {
      *
      * @param string $name Name des Executables
      * @param string|null $section Config-Sektion (null = defaultSection)
-     * @return array|null Die Executable-Konfiguration oder null
+     * @return array<string, mixed>|null Die Executable-Konfiguration oder null
      */
     public function getExecutableConfig(string $name, ?string $section = null): ?array {
         $section = $section ?? $this->defaultSection;
@@ -181,9 +181,9 @@ class CommandBuilder {
      * grundsätzlich neutralisiert werden, damit sie die Argumentstruktur nicht
      * verändern (keine Shell-Operatoren/Redirects/Command-Injection).
      *
-     * @param array $arguments Original-Argumente mit Platzhaltern
-     * @param array $replacements Platzhalter-Ersetzungen
-     * @return array Aufgelöste und escapte Argumente
+     * @param array<int, mixed> $arguments Original-Argumente mit Platzhaltern
+     * @param array<string, string> $replacements Platzhalter-Ersetzungen
+     * @return list<string> Aufgelöste und escapte Argumente
      */
     private function resolveArguments(array $arguments, array $replacements): array {
         $resolved = [];
@@ -265,6 +265,7 @@ class CommandBuilder {
      * Erkennt einen vom Autor gequoteten Einzelplatzhalter ('[X]' oder "[X]") und gibt
      * den inneren Platzhalter-Schlüssel zurück, sofern dieser in den Ersetzungen existiert.
      *
+     * @param array<string, string> $replacements
      * @return string|null Der innere Platzhalter oder null, wenn kein solcher Fall vorliegt.
      */
     private function unwrapQuotedPlaceholder(string $arg, array $replacements): ?string {
@@ -385,7 +386,7 @@ class CommandBuilder {
      *
      * Convenience-Methode für schnelle Initialisierung.
      *
-     * @param array $configFiles Array von Config-Dateipfaden
+     * @param list<string> $configFiles Array von Config-Dateipfaden
      * @param string $defaultSection Standard-Sektion für Executables
      */
     public static function fromConfigFiles(array $configFiles, string $defaultSection = 'shellExecutables'): self {
