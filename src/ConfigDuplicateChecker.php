@@ -27,17 +27,23 @@ class ConfigDuplicateChecker {
 
     /**
      * Ergebnis der Duplikatprüfung
+     *
+     * @var list<array<string, mixed>>
      */
     protected array $duplicates = [];
 
     /**
      * Ergebnis der Überschreibungsprüfung
+     *
+     * @var list<array<string, mixed>>
      */
     protected array $overrides = [];
 
     /**
      * Speichert den Ursprung jedes Konfigurationswerts
      * Format: ['section']['key'] => ['file' => 'path', 'value' => 'originalValue']
+     *
+     * @var array<string, mixed>
      */
     protected array $valueOrigins = [];
 
@@ -51,26 +57,53 @@ class ConfigDuplicateChecker {
     }
 
     /**
+     * Verarbeitet eine bereits geparste Konfigurationsdatei inkrementell:
+     * erkennt Duplikate innerhalb der Datei und Überschreibungen gegenüber allen
+     * zuvor per ingest() verarbeiteten Dateien – ohne erneutes Lesen von der Platte.
+     *
+     * @param string $filePath Absoluter Pfad der Datei (nur für die Herkunftsangabe)
+     * @param array<string, mixed> $data Bereits dekodierte JSON-Daten der Datei
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>} Neue Befunde für DIESE Datei
+     */
+    public function ingest(string $filePath, array $data): array {
+        $duplicates = $this->collectDuplicatesFromData($filePath, $data);
+        $overrides = $this->collectOverridesFromData($filePath, $data);
+
+        $this->duplicates = array_merge($this->duplicates, $duplicates);
+        $this->overrides = array_merge($this->overrides, $overrides);
+
+        return ['duplicates' => $duplicates, 'overrides' => $overrides];
+    }
+
+    /**
      * Prüft eine einzelne Konfigurationsdatei auf Duplikate innerhalb der Datei.
      *
      * @param string $filePath Pfad zur JSON-Datei
-     * @return array Liste der gefundenen Duplikate
+     * @param array<string, mixed>|null $data Optional bereits geparste Daten; sonst wird die Datei gelesen
+     * @return list<array<string, mixed>> Liste der gefundenen Duplikate
      */
-    public function checkFileForDuplicates(string $filePath): array {
+    public function checkFileForDuplicates(string $filePath, ?array $data = null): array {
+        if ($data === null) {
+            $data = $this->readJsonFile($filePath);
+            if ($data === null) {
+                return [];
+            }
+        }
+
+        $duplicates = $this->collectDuplicatesFromData($filePath, $data);
+        $this->duplicates = array_merge($this->duplicates, $duplicates);
+
+        return $duplicates;
+    }
+
+    /**
+     * Erkennt Duplikate innerhalb einer bereits geparsten Datei (ohne Zustandsänderung).
+     *
+     * @param array<string, mixed> $data
+     * @return list<array<string, mixed>> Liste der gefundenen Duplikate
+     */
+    private function collectDuplicatesFromData(string $filePath, array $data): array {
         $duplicates = [];
-
-        if (!file_exists($filePath)) {
-            $this->logError("Datei nicht gefunden: {$filePath}");
-            return $duplicates;
-        }
-
-        $jsonContent = file_get_contents($filePath);
-        $data = json_decode($jsonContent, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->logError("Fehler beim Parsen der JSON-Datei: " . json_last_error_msg());
-            return $duplicates;
-        }
 
         foreach ($data as $section => $items) {
             if (!is_array($items)) {
@@ -108,25 +141,29 @@ class ConfigDuplicateChecker {
             }
         }
 
-        $this->duplicates = array_merge($this->duplicates, $duplicates);
         return $duplicates;
     }
 
     /**
      * Prüft mehrere Konfigurationsdateien auf Duplikate und Überschreibungen.
      *
-     * @param array $filePaths Liste der zu prüfenden Dateipfade
-     * @return array Assoziatives Array mit 'duplicates' und 'overrides'
+     * @param list<string> $filePaths Liste der zu prüfenden Dateipfade
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>} Assoziatives Array mit 'duplicates' und 'overrides'
      */
     public function checkFilesForDuplicatesAndOverrides(array $filePaths): array {
         $this->reset();
 
         foreach ($filePaths as $filePath) {
+            $data = $this->readJsonFile($filePath);
+            if ($data === null) {
+                continue;
+            }
+
             // Prüfe Duplikate innerhalb der Datei
-            $this->checkFileForDuplicates($filePath);
+            $this->checkFileForDuplicates($filePath, $data);
 
             // Prüfe Überschreibungen gegenüber vorherigen Dateien
-            $this->checkForOverrides($filePath);
+            $this->checkForOverrides($filePath, $data);
         }
 
         return [
@@ -136,27 +173,64 @@ class ConfigDuplicateChecker {
     }
 
     /**
-     * Prüft, ob Werte aus dieser Datei vorherige Werte überschreiben würden.
+     * Liest und dekodiert eine JSON-Datei. Gibt null zurück, wenn sie fehlt oder ungültig ist.
      *
-     * @param string $filePath Pfad zur JSON-Datei
+     * @return array<string, mixed>|null
      */
-    protected function checkForOverrides(string $filePath): void {
+    private function readJsonFile(string $filePath): ?array {
         if (!file_exists($filePath)) {
-            return;
+            $this->logError("Datei nicht gefunden: {$filePath}");
+            return null;
         }
 
         $jsonContent = file_get_contents($filePath);
-        $data = json_decode($jsonContent, true);
+        $data = json_decode((string) $jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return;
+            $this->logError("Fehler beim Parsen der JSON-Datei: " . json_last_error_msg());
+            return null;
         }
+
+        if (!is_array($data)) {
+            return null;
+        }
+
+        /** @var array<string, mixed> $data */
+        return $data;
+    }
+
+    /**
+     * Prüft, ob Werte aus dieser Datei vorherige Werte überschreiben würden.
+     *
+     * @param string $filePath Pfad zur JSON-Datei
+     * @param array<string, mixed>|null $data Optional bereits geparste Daten; sonst wird die Datei gelesen
+     */
+    protected function checkForOverrides(string $filePath, ?array $data = null): void {
+        if ($data === null) {
+            $data = $this->readJsonFile($filePath);
+            if ($data === null) {
+                return;
+            }
+        }
+
+        $this->overrides = array_merge($this->overrides, $this->collectOverridesFromData($filePath, $data));
+    }
+
+    /**
+     * Ermittelt Überschreibungen der gegebenen Daten gegenüber dem bisher aufgebauten
+     * Herkunftsindex und aktualisiert diesen. Gibt die neuen Überschreibungen zurück.
+     *
+     * @param array<string, mixed> $data
+     * @return list<array<string, mixed>> Liste der neu erkannten Überschreibungen
+     */
+    private function collectOverridesFromData(string $filePath, array $data): array {
+        $overrides = [];
 
         foreach ($data as $section => $items) {
             if (!is_array($items)) {
                 // Skalare Sektion
                 if (isset($this->valueOrigins[$section]) && !is_array($this->valueOrigins[$section])) {
-                    $this->overrides[] = [
+                    $overrides[] = [
                         'section' => $section,
                         'key' => null,
                         'originalFile' => $this->valueOrigins[$section]['file'],
@@ -193,7 +267,7 @@ class ConfigDuplicateChecker {
 
                     // Nur als Überschreibung melden, wenn der Wert unterschiedlich ist
                     if ($original['value'] !== $value) {
-                        $this->overrides[] = [
+                        $overrides[] = [
                             'section' => $section,
                             'key' => $key,
                             'originalFile' => $original['file'],
@@ -211,13 +285,15 @@ class ConfigDuplicateChecker {
                 ];
             }
         }
+
+        return $overrides;
     }
 
     /**
      * Prüft die aktuell im ConfigLoader geladenen Dateien.
      *
      * @param ConfigLoader $loader Die ConfigLoader-Instanz
-     * @return array Assoziatives Array mit 'duplicates' und 'overrides'
+     * @return array{duplicates: list<array<string, mixed>>, overrides: list<array<string, mixed>>} Assoziatives Array mit 'duplicates' und 'overrides'
      */
     public function checkConfigLoader(ConfigLoader $loader): array {
         $loadedFiles = $loader->getLoadedFiles();
@@ -226,6 +302,8 @@ class ConfigDuplicateChecker {
 
     /**
      * Gibt alle gefundenen Duplikate zurück.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getDuplicates(): array {
         return $this->duplicates;
@@ -233,6 +311,8 @@ class ConfigDuplicateChecker {
 
     /**
      * Gibt alle gefundenen Überschreibungen zurück.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getOverrides(): array {
         return $this->overrides;
@@ -326,7 +406,7 @@ class ConfigDuplicateChecker {
             return $value ? 'true' : 'false';
         }
         if (is_array($value)) {
-            return json_encode($value);
+            return (string) json_encode($value);
         }
         return (string) $value;
     }

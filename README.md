@@ -7,11 +7,15 @@ Ein JSON-basiertes Konfigurationsverwaltungs-Toolkit mit Plugin-basierter Archit
 
 ## Features
 
-- **Singleton-Pattern**: Zentraler `ConfigLoader` für konsistente Konfigurationsverwaltung
-- **Plugin-System**: Automatische Erkennung und Laden von ConfigType-Klassen
-- **CommandBuilder**: Baut Shell-Befehle aus Executable-Konfigurationen mit Platzhalter-Ersetzung
+- **Benannte Instanzen**: Zentraler `ConfigLoader` mit prozessweitem Standard-Singleton
+  und optional isolierten, benannten Instanzen (z.B. pro Projekt/Toolkit)
+- **Plugin-System**: Automatische Erkennung und Laden von ConfigType-Klassen über eine
+  zentrale, deterministisch priorisierte `ConfigTypeRegistry`
+- **CommandBuilder**: Baut Shell-Befehle aus Executable-Konfigurationen mit
+  Platzhalter-Ersetzung – eingesetzte Werte werden dabei sicher shell-escaped
+  (kein Command-Injection über durch Nutzer bestimmte Werte)
 - **Typ-Casting**: Unterstützt `float`, `int`, `timestamp`, `date`, `datetime`, `bool`, `array`, `json` und `string`
-- **Validierung**: Automatische Validierung gegen den passenden ConfigType
+- **Validierung**: Automatische Validierung gegen den passenden ConfigType (auch eigenständig ohne vorher geladenen `ConfigLoader`)
 - **Mehrere Konfigurationsformate**: Strukturierte Configs, Executable-Definitionen, Postman-Collections u.v.m.
 
 ## Installation
@@ -42,6 +46,21 @@ $value = $loader->get('Section', 'key');
 $section = $loader->get('Database');
 ```
 
+#### Isolierte Instanzen
+
+`getInstance()` liefert standardmäßig einen prozessweiten Singleton. Wer eine
+eigene, von anderen Nutzern getrennte Konfiguration braucht (z.B. verschiedene
+Toolkits im selben Prozess), verwendet einen eigenen Instanz-Key oder eine
+komplett eigenständige Instanz:
+
+```php
+// Isolierte, benannte Instanz (wiederverwendbar unter demselben Key)
+$loader = ConfigLoader::getInstance(logger: null, instanceKey: 'mein-toolkit');
+
+// Vollständig eigenständige, nicht registrierte Instanz
+$isolated = ConfigLoader::create();
+```
+
 ### CommandBuilder für Shell-Befehle
 
 Der `CommandBuilder` baut Shell-Befehle aus der Executable-Konfiguration und ersetzt Platzhalter automatisch:
@@ -62,7 +81,8 @@ $command = $builder->build('pdftotext', [
     '[PDF-FILE]' => '/path/to/document.pdf',
     '[TEXT-FILE]' => '/path/to/output.txt'
 ]);
-// Ergebnis: "pdftotext -layout -enc UTF-8 '/path/to/document.pdf' '/path/to/output.txt'"
+// Ergebnis: "'pdftotext' -layout -enc UTF-8 '/path/to/document.pdf' '/path/to/output.txt'"
+// (Pfad und eingesetzte Werte werden zur Sicherheit shell-escaped)
 
 // Java-Befehl bauen
 $command = $builder->buildJava('pdfbox', [

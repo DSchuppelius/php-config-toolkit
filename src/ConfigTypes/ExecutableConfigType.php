@@ -94,13 +94,20 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /** @var bool|null Gecachter Wert für exec-Verfügbarkeit */
     protected static ?bool $canUseExecCache = null;
 
-    /** @var array|null Gecachte open_basedir Pfade (null = nicht gecacht, [] = keine Einschränkung) */
+    /** @var bool|null Gecachter Wert für shell_exec-Verfügbarkeit */
+    protected static ?bool $canUseShellExecCache = null;
+
+    /** @var list<string>|null Gecachte open_basedir Pfade (null = nicht gecacht, [] = keine Einschränkung) */
     protected static ?array $openBasedirPathsCache = null;
 
     public function __construct() {
         $this->isWindows = strtolower(PHP_OS_FAMILY) === 'windows';
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     public function parse(array $data): array {
         $parsed = [];
 
@@ -126,7 +133,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $folderErrors = $this->checkRequiredFoldersWithErrors($folders2Check);
 
                 if ($required && empty($executablePath)) {
-                    $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
+                    $configuredPath = is_string($executable['path'] ?? null) ? $executable['path'] : '(nicht gesetzt)';
+                    $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$configuredPath}').");
                 }
 
                 if ($required && !empty($fileErrors)) {
@@ -159,6 +167,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob die Konfiguration dem ExecutableConfigType-Format entspricht.
      * Erfordert 'path' und verbietet plattformspezifische Pfade.
+     *
+     * @param array<string, mixed> $data
      */
     public static function matches(array $data): bool {
         if (empty($data)) {
@@ -195,7 +205,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /**
      * Validiert die Executable-Konfiguration.
      *
-     * @return array Liste der gefundenen Validierungsfehler.
+     * @param array<string, mixed> $data
+     * @return list<string> Liste der gefundenen Validierungsfehler.
      */
     public function validate(array $data): array {
         $errors = [];
@@ -371,13 +382,16 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
      * Gibt ein Array mit Fehlermeldungen zurück (leer wenn alles ok).
+     *
+     * @param array<mixed> $paths
+     * @return array<array-key, string> Pfad => Fehlermeldung
      */
     protected function checkRequiredFilesWithErrors(array $paths): array {
         $errors = [];
         foreach ($paths as $path) {
             $error = $this->getFileUsabilityError((string) $path);
             if ($error !== null) {
-                $errors[$path] = $error;
+                $errors[(string) $path] = $error;
             }
         }
         return $errors;
@@ -386,13 +400,16 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob alle erforderlichen Ordner existieren und zugänglich sind.
      * Gibt ein Array mit Fehlermeldungen zurück (leer wenn alles ok).
+     *
+     * @param array<mixed> $paths
+     * @return array<array-key, string> Pfad => Fehlermeldung
      */
     protected function checkRequiredFoldersWithErrors(array $paths): array {
         $errors = [];
         foreach ($paths as $path) {
             $error = $this->getFolderUsabilityError((string) $path);
             if ($error !== null) {
-                $errors[$path] = $error;
+                $errors[(string) $path] = $error;
             }
         }
         return $errors;
@@ -400,6 +417,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Prüft, ob alle erforderlichen Dateien existieren und zugänglich sind.
+     *
+     * @param array<mixed> $paths
      */
     protected function checkRequiredFiles(array $paths): bool {
         return empty($this->checkRequiredFilesWithErrors($paths));
@@ -407,6 +426,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Prüft, ob alle erforderlichen Ordner existieren und zugänglich sind.
+     *
+     * @param array<mixed> $paths
      */
     protected function checkRequiredFolders(array $paths): bool {
         return empty($this->checkRequiredFoldersWithErrors($paths));
@@ -435,6 +456,12 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * Plattformunabhängige Prüfung, ob ein Befehl ausführbar ist.
      */
     protected function isCommandExecutableCrossPlatform(string $command): bool {
+        // Auf gehärteten Hosts kann shell_exec deaktiviert sein. Dann hier abbrechen –
+        // der Aufrufer fällt anschließend auf findExecutablePath() (PATH ohne exec) zurück.
+        if (!$this->canUseShellExec()) {
+            return false;
+        }
+
         if ($this->isWindows) {
             $command = escapeshellarg($command);
             $result = shell_exec("where {$command} 2>NUL");
@@ -448,6 +475,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Ermittelt den vollständigen Pfad einer ausführbaren Datei.
+     *
+     * @param array<string, mixed> $executable
      */
     protected function getExecutablePath(array $executable): ?string {
         $path = $executable['path'] ?? null;
@@ -469,6 +498,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Gibt ein Array-Feld aus dem Executable zurück, oder ein leeres Array.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getArrayField(array $executable, string $field): array {
         return isset($executable[$field]) && is_array($executable[$field]) ? $executable[$field] : [];
@@ -476,6 +508,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Gibt die Liste der zu prüfenden Zusatzdateien zurück.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getFiles2Check(array $executable): array {
         return $this->getArrayField($executable, 'files2Check');
@@ -483,6 +518,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Gibt die Liste der zu prüfenden Zusatzordner zurück.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getFolders2Check(array $executable): array {
         return $this->getArrayField($executable, 'folders2Check');
@@ -490,6 +528,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Gibt die Argumente für das ausführbare Programm zurück.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getArguments(array $executable): array {
         return $this->getArrayField($executable, 'arguments');
@@ -497,6 +538,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Gibt die Debug-Argumente für das ausführbare Programm zurück.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getDebugArguments(array $executable): array {
         return $this->getArrayField($executable, 'debugArguments');
@@ -525,6 +569,28 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     }
 
     /**
+     * Prüft ob shell_exec nutzbar ist (shared hosting / hardened php.ini).
+     * Ergebnis wird gecacht für bessere Performance.
+     */
+    protected function canUseShellExec(): bool {
+        if (self::$canUseShellExecCache !== null) {
+            return self::$canUseShellExecCache;
+        }
+
+        if (!function_exists('shell_exec')) {
+            return self::$canUseShellExecCache = false;
+        }
+
+        $disabled = (string) ini_get('disable_functions');
+        if ($disabled === '') {
+            return self::$canUseShellExecCache = true;
+        }
+
+        $disabledList = array_map('trim', explode(',', strtolower($disabled)));
+        return self::$canUseShellExecCache = !in_array('shell_exec', $disabledList, true);
+    }
+
+    /**
      * Prüft, ob open_basedir aktiv ist.
      * Ergebnis wird gecacht für bessere Performance.
      */
@@ -536,7 +602,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * Gibt die konfigurierten open_basedir Pfade zurück.
      * Ergebnis wird gecacht für bessere Performance.
      *
-     * @return array Leeres Array wenn open_basedir nicht aktiv ist.
+     * @return list<string> Leeres Array wenn open_basedir nicht aktiv ist.
      */
     protected function getOpenBasedirPaths(): array {
         if (self::$openBasedirPathsCache !== null) {
@@ -823,7 +889,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return null;
         }
 
-        $baseCommand = preg_replace('/\.exe$/i', '', $command);
+        $baseCommand = preg_replace('/\.exe$/i', '', $command) ?? $command;
 
         $directPaths = [
             'C:\Windows\System32\\' . $baseCommand . '.exe',

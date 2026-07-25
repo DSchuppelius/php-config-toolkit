@@ -211,4 +211,86 @@ class ConfigLoaderTest extends TestCase {
         $this->assertIsArray($config->get('shellExecutables'));
         $this->assertIsArray($config->get('developmentTools'));
     }
+
+    /**
+     * Regression: reload() darf die Konfiguration nicht verlieren, sondern die zuvor
+     * geladenen Dateien erneut einlesen.
+     */
+    public function test_reload_preserves_configuration(): void {
+        ConfigLoader::resetInstance('reloadTest');
+        $config = ConfigLoader::getInstance(null, 'reloadTest');
+        $config->loadConfigFile($this->validConfigPath, true);
+
+        $this->assertSame('log.txt', $config->get('Logger', 'logFile'));
+        $this->assertCount(1, $config->getLoadedFiles());
+
+        $config->reload();
+
+        $this->assertSame('log.txt', $config->get('Logger', 'logFile'), 'reload() darf die Konfiguration nicht verlieren');
+        $this->assertCount(1, $config->getLoadedFiles());
+
+        ConfigLoader::resetInstance('reloadTest');
+    }
+
+    /**
+     * Regression: Verschiedene Instanz-Keys liefern isolierte Konfigurationen,
+     * damit sich unterschiedliche Toolkits keinen globalen Namespace teilen.
+     */
+    public function test_named_instances_are_isolated(): void {
+        ConfigLoader::resetInstance('isoA');
+        ConfigLoader::resetInstance('isoB');
+
+        $a = ConfigLoader::getInstance(null, 'isoA');
+        $b = ConfigLoader::getInstance(null, 'isoB');
+
+        $this->assertNotSame($a, $b);
+
+        $a->loadConfigFile($this->validConfigPath, true);
+
+        $this->assertSame('log.txt', $a->get('Logger', 'logFile'));
+        $this->assertNull($b->get('Logger', 'logFile'), 'Instanz B darf die Konfiguration von A nicht sehen');
+
+        ConfigLoader::resetInstance('isoA');
+        ConfigLoader::resetInstance('isoB');
+    }
+
+    /**
+     * Regression: Der Standard-Key verhält sich weiterhin wie ein prozessweiter Singleton.
+     */
+    public function test_default_instance_is_shared(): void {
+        $this->assertSame(ConfigLoader::getInstance(), ConfigLoader::getInstance());
+    }
+
+    /**
+     * Regression: Eine existierende, aber nicht lesbare Datei darf keinen uncaught
+     * TypeError (json_decode(false)) auslösen, sondern muss sauber behandelt werden.
+     */
+    public function test_unreadable_file_is_handled_gracefully(): void {
+        $tempFile = tempnam(sys_get_temp_dir(), 'unreadable_');
+        file_put_contents($tempFile, '{"Section":[{"key":"a","value":"1","enabled":true}]}');
+
+        if (!@chmod($tempFile, 0000) || is_readable($tempFile)) {
+            // z.B. als root ausgeführt: chmod greift nicht -> Test nicht aussagekräftig.
+            @chmod($tempFile, 0644);
+            unlink($tempFile);
+            $this->markTestSkipped('Datei konnte nicht unlesbar gemacht werden (evtl. als root).');
+        }
+
+        try {
+            ConfigLoader::resetInstance('unreadable');
+            $loader = ConfigLoader::getInstance(null, 'unreadable');
+
+            // Nicht-werfende Variante: liefert false statt TypeError.
+            $this->assertFalse($loader->loadConfigFile($tempFile, false));
+
+            // Werfende Variante: reguläre Exception, kein TypeError.
+            $this->expectException(Exception::class);
+            $this->expectExceptionMessage('nicht lesbar');
+            $loader->loadConfigFile($tempFile, true);
+        } finally {
+            @chmod($tempFile, 0644);
+            unlink($tempFile);
+            ConfigLoader::resetInstance('unreadable');
+        }
+    }
 }

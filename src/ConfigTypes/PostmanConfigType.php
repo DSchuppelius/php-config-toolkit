@@ -23,6 +23,8 @@ class PostmanConfigType extends ConfigTypeAbstract {
     /**
      * Prüft, ob die gegebene Konfiguration dem Postman-Format entspricht.
      * Erfordert 'id', 'name' und 'values' als Array.
+     *
+     * @param array<string, mixed> $data
      */
     public static function matches(array $data): bool {
         if (empty($data)) {
@@ -37,11 +39,15 @@ class PostmanConfigType extends ConfigTypeAbstract {
 
     /**
      * Konvertiert die Postman-Konfigurationsstruktur in eine nutzbare Form.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public function parse(array $data): array {
         $parsed = [];
         $parsed['id'] = $data['id'];
         $parsed['name'] = $data['name'];
+        $parsed['values'] = []; // stets vorhanden, auch wenn alle Einträge deaktiviert sind
 
         foreach ($data['values'] as $item) {
             if (!($item['enabled'] ?? true)) {
@@ -64,6 +70,9 @@ class PostmanConfigType extends ConfigTypeAbstract {
 
     /**
      * Validiert die Postman-Konfiguration.
+     *
+     * @param array<string, mixed> $data
+     * @return list<string>
      */
     public function validate(array $data): array {
         $errors = [];

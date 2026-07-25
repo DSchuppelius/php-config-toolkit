@@ -20,6 +20,8 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
     /**
      * Prüft, ob die Konfiguration plattformspezifische Pfade enthält.
      * Erfordert mindestens einen Eintrag mit windowsPath UND linuxPath.
+     *
+     * @param array<string, mixed> $data
      */
     public static function matches(array $data): bool {
         if (empty($data)) {
@@ -64,6 +66,9 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
 
     /**
      * Gibt die zu prüfenden Dateien basierend auf dem aktuellen OS zurück.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getFiles2Check(array $executable): array {
         $platformKey = $this->isWindows ? 'windowsFiles2Check' : 'linuxFiles2Check';
@@ -77,6 +82,9 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
 
     /**
      * Gibt die zu prüfenden Ordner basierend auf dem aktuellen OS zurück.
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getFolders2Check(array $executable): array {
         $platformKey = $this->isWindows ? 'windowsFolders2Check' : 'linuxFolders2Check';
@@ -90,6 +98,8 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
 
     /**
      * Gibt den richtigen Pfad für das ausführbare Programm basierend auf dem OS zurück
+     *
+     * @param array<string, mixed> $executable
      */
     protected function getExecutablePath(array $executable): ?string {
         $path = $this->isWindows
@@ -101,6 +111,9 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
 
     /**
      * Gibt die richtigen Argumente für das aktuelle OS zurück
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getArguments(array $executable): array {
         return $this->isWindows
@@ -110,6 +123,9 @@ class CrossPlatformExecutableConfigType extends ExecutableConfigType {
 
     /**
      * Gibt die richtigen Debug-Argumente für das aktuelle OS zurück
+     *
+     * @param array<string, mixed> $executable
+     * @return array<mixed>
      */
     protected function getDebugArguments(array $executable): array {
         return $this->isWindows

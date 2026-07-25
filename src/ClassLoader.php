@@ -106,7 +106,7 @@ class ClassLoader {
      * **NEU:** Rekursive Suche nach PHP-Dateien
      *
      * @param string $directory Das Verzeichnis, das rekursiv nach PHP-Dateien durchsucht wird.
-     * @return array Liste der gefundenen PHP-Dateien
+     * @return list<string> Liste der gefundenen PHP-Dateien
      */
     private function getPhpFilesRecursive(string $directory): array {
         $files = [];
@@ -115,7 +115,10 @@ class ClassLoader {
         /** @var SplFileInfo $file */
         foreach ($iterator as $file) {
             if ($file->isFile() && strtolower($file->getExtension()) === 'php') {
-                $files[] = $file->getRealPath();
+                $realPath = $file->getRealPath();
+                if ($realPath !== false) {
+                    $files[] = $realPath;
+                }
             }
         }
 
@@ -140,7 +143,7 @@ class ClassLoader {
     /**
      * Gibt die geladenen Klassen zurück
      *
-     * @return array Liste der geladenen Klassen
+     * @return array<class-string> Liste der geladenen Klassen
      */
     public function getClasses(): array {
         return $this->classes;

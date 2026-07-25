@@ -11,6 +11,8 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
      * Prüft, ob dieser ConfigType zur gegebenen Konfiguration passt.
      * Wird nur gewählt, wenn mindestens eine "flache" Array-Sektion und
      * mindestens eine strukturierte Sektion existiert.
+     *
+     * @param array<string, mixed> $data
      */
     public static function matches(array $data): bool {
         if (empty($data)) {
@@ -35,6 +37,9 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
 
     /**
      * Parsen der erweiterten Struktur, einschließlich "flacher" Arrays.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public function parse(array $data): array {
         $parsed = [];
@@ -54,6 +59,9 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
 
     /**
      * Validiert die erweiterte Struktur inkl. flacher Arrays und Key-Value-Mappings.
+     *
+     * @param array<string, mixed> $data
+     * @return list<string>
      */
     public function validate(array $data): array {
         $errors = [];
@@ -97,6 +105,9 @@ class AdvancedStructuredConfigType extends StructuredConfigType {
 
     /**
      * Parst eine strukturierte Sektion mit key/value/enabled Einträgen.
+     *
+     * @param array<int, mixed> $items
+     * @return array<string, mixed>
      */
     private function parseStructuredSection(string $section, array $items): array {
         $result = [];
