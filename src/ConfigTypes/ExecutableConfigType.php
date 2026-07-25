@@ -94,6 +94,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /** @var bool|null Gecachter Wert für exec-Verfügbarkeit */
     protected static ?bool $canUseExecCache = null;
 
+    /** @var bool|null Gecachter Wert für shell_exec-Verfügbarkeit */
+    protected static ?bool $canUseShellExecCache = null;
+
     /** @var array|null Gecachte open_basedir Pfade (null = nicht gecacht, [] = keine Einschränkung) */
     protected static ?array $openBasedirPathsCache = null;
 
@@ -126,7 +129,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $folderErrors = $this->checkRequiredFoldersWithErrors($folders2Check);
 
                 if ($required && empty($executablePath)) {
-                    $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$executable['path']}').");
+                    $configuredPath = is_string($executable['path'] ?? null) ? $executable['path'] : '(nicht gesetzt)';
+                    $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$configuredPath}').");
                 }
 
                 if ($required && !empty($fileErrors)) {
@@ -435,6 +439,12 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * Plattformunabhängige Prüfung, ob ein Befehl ausführbar ist.
      */
     protected function isCommandExecutableCrossPlatform(string $command): bool {
+        // Auf gehärteten Hosts kann shell_exec deaktiviert sein. Dann hier abbrechen –
+        // der Aufrufer fällt anschließend auf findExecutablePath() (PATH ohne exec) zurück.
+        if (!$this->canUseShellExec()) {
+            return false;
+        }
+
         if ($this->isWindows) {
             $command = escapeshellarg($command);
             $result = shell_exec("where {$command} 2>NUL");
@@ -522,6 +532,28 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
         $disabledList = array_map('trim', explode(',', strtolower($disabled)));
         return self::$canUseExecCache = !in_array('exec', $disabledList, true);
+    }
+
+    /**
+     * Prüft ob shell_exec nutzbar ist (shared hosting / hardened php.ini).
+     * Ergebnis wird gecacht für bessere Performance.
+     */
+    protected function canUseShellExec(): bool {
+        if (self::$canUseShellExecCache !== null) {
+            return self::$canUseShellExecCache;
+        }
+
+        if (!function_exists('shell_exec')) {
+            return self::$canUseShellExecCache = false;
+        }
+
+        $disabled = (string) ini_get('disable_functions');
+        if ($disabled === '') {
+            return self::$canUseShellExecCache = true;
+        }
+
+        $disabledList = array_map('trim', explode(',', strtolower($disabled)));
+        return self::$canUseShellExecCache = !in_array('shell_exec', $disabledList, true);
     }
 
     /**

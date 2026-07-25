@@ -42,6 +42,7 @@ class PostmanConfigType extends ConfigTypeAbstract {
         $parsed = [];
         $parsed['id'] = $data['id'];
         $parsed['name'] = $data['name'];
+        $parsed['values'] = []; // stets vorhanden, auch wenn alle Einträge deaktiviert sind
 
         foreach ($data['values'] as $item) {
             if (!($item['enabled'] ?? true)) {

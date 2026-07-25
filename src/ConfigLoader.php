@@ -18,38 +18,53 @@ use Exception;
 use Psr\Log\LoggerInterface;
 
 /**
- * Singleton-Klasse zum Laden und Verwalten von JSON-Konfigurationsdateien.
+ * Klasse zum Laden und Verwalten von JSON-Konfigurationsdateien.
  * Unterstützt automatische Typ-Erkennung durch das Plugin-System.
+ *
+ * Instanzverwaltung: getInstance() liefert benannte Instanzen. Der Standard-Key
+ * ('default') verhält sich wie ein prozessweiter Singleton (rückwärtskompatibel),
+ * über einen eigenen Key erhält jeder Nutzer eine isolierte Konfiguration – so
+ * kollidieren z.B. verschiedene Toolkits nicht mehr in einem gemeinsamen Namespace.
+ * Für eine vollständig eigenständige, nicht registrierte Instanz siehe create().
  */
 final class ConfigLoader {
     use ErrorLog;
 
-    private static ?self $instance = null;
+    public const DEFAULT_INSTANCE = 'default';
+
+    /** @var array<string, self> Registrierte, benannte Instanzen. */
+    private static array $instances = [];
 
     protected array $config = [];
     protected array $filePaths = [];
     protected array $loadedFiles = []; // Speichert bereits geladene Konfigurationsdateien
-    protected ClassLoader $classLoader;
     protected ConfigDuplicateChecker $duplicateChecker;
-
-    protected static string $configTypesDirectory = __DIR__ . DIRECTORY_SEPARATOR . 'ConfigTypes';
-    protected static string $configTypesNamespace = 'ConfigToolkit\\ConfigTypes';
 
     private function __construct(?LoggerInterface $logger = null) {
         $this->initializeLogger($logger);
 
-        $this->classLoader = new ClassLoader(self::$configTypesDirectory, self::$configTypesNamespace, ConfigTypeInterface::class, $logger);
         $this->duplicateChecker = new ConfigDuplicateChecker($logger);
     }
 
     /**
-     * Singleton-Pattern, ohne sofortige Konfigurationsdatei
+     * Gibt eine benannte Instanz zurück (Standard-Key = prozessweiter Singleton).
+     *
+     * @param LoggerInterface|null $logger      Optionaler Logger (nur beim ersten Erzeugen relevant)
+     * @param string               $instanceKey Instanz-Schlüssel für isolierte Konfigurationen
      */
-    public static function getInstance(?LoggerInterface $logger = null): static {
-        if (self::$instance === null) {
-            self::$instance = new static($logger);
+    public static function getInstance(?LoggerInterface $logger = null, string $instanceKey = self::DEFAULT_INSTANCE): static {
+        if (!isset(self::$instances[$instanceKey])) {
+            self::$instances[$instanceKey] = new static($logger);
         }
-        return self::$instance;
+        return self::$instances[$instanceKey];
+    }
+
+    /**
+     * Erzeugt eine vollständig eigenständige, NICHT registrierte Instanz.
+     * Nützlich, wenn eine Konfiguration garantiert isoliert bleiben soll.
+     */
+    public static function create(?LoggerInterface $logger = null): self {
+        return new self($logger);
     }
 
     /**
@@ -80,7 +95,14 @@ final class ConfigLoader {
             return $this->logInfoAndReturn(true, "Konfigurationsdatei bereits geladen, übersprungen: $realPath");
         }
 
-        $jsonContent = file_get_contents($realPath);
+        $jsonContent = @file_get_contents($realPath);
+        if ($jsonContent === false) {
+            if ($throwException) {
+                $this->logErrorAndThrow(Exception::class, "Konfigurationsdatei nicht lesbar: {$realPath}");
+            }
+            return $this->logErrorAndReturn(false, "Konfigurationsdatei nicht lesbar: {$realPath}");
+        }
+
         $data = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -91,9 +113,11 @@ final class ConfigLoader {
         }
 
         try {
-            // Prüfe auf Duplikate innerhalb der Datei
-            $fileDuplicates = $this->duplicateChecker->checkFileForDuplicates($realPath);
-            foreach ($fileDuplicates as $dup) {
+            // Duplikate innerhalb der Datei und Überschreibungen gegenüber bereits
+            // geladenen Dateien inkrementell prüfen – ohne erneutes Lesen von der Platte.
+            $ingest = $this->duplicateChecker->ingest($realPath, $data);
+
+            foreach ($ingest['duplicates'] as $dup) {
                 $this->logWarning(sprintf(
                     "Duplikat gefunden in '%s': Sektion '%s', Key '%s' ist mehrfach definiert (Index %d und %d)",
                     basename($realPath),
@@ -104,25 +128,16 @@ final class ConfigLoader {
                 ));
             }
 
-            // Prüfe auf Überschreibungen gegenüber bereits geladenen Dateien
-            if (!empty($this->loadedFiles)) {
-                $allFiles = array_merge($this->loadedFiles, [$realPath]);
-                $checkResult = $this->duplicateChecker->checkFilesForDuplicatesAndOverrides($allFiles);
-
-                // Nur neue Überschreibungen loggen (die diese Datei betreffen)
-                foreach ($checkResult['overrides'] as $override) {
-                    if ($override['newFile'] === $realPath) {
-                        $this->logWarning(sprintf(
-                            "Überschreibung: Sektion '%s', Key '%s' wird von '%s' auf '%s' geändert (Datei: %s -> %s)",
-                            $override['section'],
-                            $override['key'] ?? '(Skalarer Wert)',
-                            $this->formatValue($override['originalValue']),
-                            $this->formatValue($override['newValue']),
-                            basename($override['originalFile']),
-                            basename($override['newFile'])
-                        ));
-                    }
-                }
+            foreach ($ingest['overrides'] as $override) {
+                $this->logWarning(sprintf(
+                    "Überschreibung: Sektion '%s', Key '%s' wird von '%s' auf '%s' geändert (Datei: %s -> %s)",
+                    $override['section'],
+                    $override['key'] ?? '(Skalarer Wert)',
+                    $this->formatValue($override['originalValue']),
+                    $this->formatValue($override['newValue']),
+                    basename($override['originalFile']),
+                    basename($override['newFile'])
+                ));
             }
 
             $configType = $this->detectConfigType($data);
@@ -130,7 +145,15 @@ final class ConfigLoader {
 
             // Merge der Konfiguration, spätere Dateien überschreiben frühere
             $this->config = array_replace_recursive($this->config, $parsedConfig);
-            $this->loadedFiles[] = $realPath; // Speichert die Datei als geladen
+
+            // Datei als geladen und als (für reload relevanter) Ausgangspfad merken
+            if (!in_array($realPath, $this->loadedFiles, true)) {
+                $this->loadedFiles[] = $realPath;
+            }
+            if (!in_array($realPath, $this->filePaths, true)) {
+                $this->filePaths[] = $realPath;
+            }
+
             return $this->logDebugAndReturn(true, "Konfigurationsdatei: $realPath, mit Typ: " . get_class($configType) . " geladen");
         } catch (Exception $e) {
             $this->logError("Fehler beim Laden der Konfigurationsdatei $realPath: " . $e->getMessage());
@@ -155,15 +178,10 @@ final class ConfigLoader {
     }
 
     /**
-     * Erkennt den passenden Konfigurationstyp, indem alle registrierten Klassen geprüft werden.
+     * Erkennt den passenden Konfigurationstyp über die zentrale Registry.
      */
     protected function detectConfigType(array $data): ConfigTypeInterface {
-        foreach ($this->classLoader->getClasses() as $class) {
-            if ($class::matches($data)) {
-                return new $class;
-            }
-        }
-        $this->logErrorAndThrow(Exception::class, "Unbekannter Konfigurationstyp in der aktuellen Datei");
+        return ConfigTypeRegistry::detect($data, self::getLogger());
     }
 
     /**
@@ -245,13 +263,15 @@ final class ConfigLoader {
     }
 
     /**
-     * Lädt alle Konfigurationsdateien erneut
+     * Lädt alle zuvor geladenen Konfigurationsdateien erneut von der Platte.
      */
     public function reload(): void {
+        $files = $this->filePaths; // Snapshot der Ausgangspfade
         $this->config = [];
-        $this->loadedFiles = []; // Setzt die geladenen Dateien zurück
+        $this->loadedFiles = [];   // Setzt die geladenen Dateien zurück
+        $this->filePaths = [];     // wird beim erneuten Laden neu befüllt
         $this->duplicateChecker->reset(); // Setzt den Duplikat-Checker zurück
-        $this->loadConfigFiles($this->filePaths, true, true);
+        $this->loadConfigFiles($files, true, true);
     }
 
     /**
@@ -280,9 +300,15 @@ final class ConfigLoader {
     }
 
     /**
-     * Setzt die Singleton-Instanz zurück (hauptsächlich für Tests).
+     * Setzt registrierte Instanzen zurück (hauptsächlich für Tests).
+     *
+     * @param string|null $instanceKey Null = alle Instanzen zurücksetzen, sonst nur der genannte Key
      */
-    public static function resetInstance(): void {
-        self::$instance = null;
+    public static function resetInstance(?string $instanceKey = null): void {
+        if ($instanceKey === null) {
+            self::$instances = [];
+            return;
+        }
+        unset(self::$instances[$instanceKey]);
     }
 }

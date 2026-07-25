@@ -12,12 +12,9 @@ declare(strict_types=1);
 
 namespace ConfigToolkit;
 
-use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
-use ConfigToolkit\Contracts\Interfaces\ConfigTypeInterface;
 use ERRORToolkit\Exceptions\FileSystem\FileNotFoundException;
 use ERRORToolkit\Traits\ErrorLog;
 use Exception;
-use ReflectionClass;
 
 /**
  * Statische Klasse zur Validierung von JSON-Konfigurationsdateien.
@@ -27,12 +24,7 @@ class ConfigValidator {
     use ErrorLog;
 
     /**
-     * Cache für geladene ConfigType-Klassen.
-     */
-    protected static array $configTypeClasses = [];
-
-    /**
-     * Validiert eine JSON-Konfigurationsdatei anhand der passenden `ConfigTypeAbstract`-Klasse.
+     * Validiert eine JSON-Konfigurationsdatei anhand des passenden ConfigTypes.
      *
      * @param string $filePath Pfad zur JSON-Datei.
      * @return array Liste der Fehler, falls vorhanden, sonst ein leeres Array.
@@ -44,52 +36,16 @@ class ConfigValidator {
         }
 
         $jsonContent = file_get_contents($filePath);
-        $data = json_decode($jsonContent, true);
+        $data = json_decode((string) $jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             self::logErrorAndThrow(Exception::class, "Fehler beim Parsen der JSON-Konfiguration: " . json_last_error_msg());
         }
 
-        self::loadAvailableConfigTypes();
+        // Zentrale Typ-Erkennung – stellt sicher, dass die ConfigType-Plugins geladen sind,
+        // auch wenn zuvor kein ConfigLoader instanziiert wurde.
+        $configType = ConfigTypeRegistry::detect($data, self::getLogger());
 
-        $configType = self::detectConfigType($data);
         return $configType->validate($data);
-    }
-
-    /**
-     * Erkennt alle `ConfigTypeAbstract`-Klassen aus `ConfigToolkit\ConfigTypes`.
-     */
-    protected static function loadAvailableConfigTypes(): void {
-        if (!empty(self::$configTypeClasses)) {
-            return; // Falls bereits geladen, nicht erneut scannen
-        }
-
-        foreach (get_declared_classes() as $class) {
-            if (str_starts_with($class, 'ConfigToolkit\\ConfigTypes\\') && is_subclass_of($class, ConfigTypeAbstract::class)) {
-                self::$configTypeClasses[] = $class;
-            }
-        }
-
-        if (empty(self::$configTypeClasses)) {
-            self::logErrorAndThrow(Exception::class, "Keine gültigen Konfigurationstypen gefunden.");
-        }
-    }
-
-    /**
-     * Erkennt den passenden Konfigurationstyp, indem alle registrierten Klassen geprüft werden.
-     */
-    protected static function detectConfigType(array $data): ConfigTypeAbstract {
-        foreach (self::$configTypeClasses as $class) {
-            $reflection = new ReflectionClass($class);
-
-            if (!$reflection->isAbstract() && $reflection->implementsInterface(ConfigTypeInterface::class)) {
-                // matches() ist statisch, daher statisch aufrufen
-                if ($class::matches($data)) {
-                    return $reflection->newInstance();
-                }
-            }
-        }
-
-        self::logErrorAndThrow(Exception::class, "Unbekannter Konfigurationstyp in der Datei.");
     }
 }

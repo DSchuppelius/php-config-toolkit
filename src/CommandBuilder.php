@@ -24,7 +24,8 @@ use ERRORToolkit\Traits\ErrorLog;
  * @example
  * $builder = new CommandBuilder($configLoader);
  * $command = $builder->build('pdftotext', ['[INPUT]' => '/path/to.pdf', '[OUTPUT]' => '/path/to.txt']);
- * // Ergebnis: "pdftotext -layout -enc UTF-8 '/path/to.pdf' '/path/to.txt'"
+ * // Ergebnis: "'pdftotext' -layout -enc UTF-8 '/path/to.pdf' '/path/to.txt'"
+ * // (Pfad und eingesetzte Werte werden zur Sicherheit shell-escaped)
  */
 class CommandBuilder {
     use ErrorLog;
@@ -173,6 +174,13 @@ class CommandBuilder {
     /**
      * Ersetzt Platzhalter in den Argumenten und escaped sie.
      *
+     * Sicherheitsmodell: Das Argument-Template stammt aus der (vertrauenswürdigen)
+     * Konfiguration, die eingesetzten Werte sind potenziell durch Nutzer bestimmt
+     * (Dateinamen, Passwörter, Betreffzeilen). Die Escaping-Entscheidung wird daher
+     * ausschließlich anhand des Templates getroffen, während eingesetzte Werte
+     * grundsätzlich neutralisiert werden, damit sie die Argumentstruktur nicht
+     * verändern (keine Shell-Operatoren/Redirects/Command-Injection).
+     *
      * @param array $arguments Original-Argumente mit Platzhaltern
      * @param array $replacements Platzhalter-Ersetzungen
      * @return array Aufgelöste und escapte Argumente
@@ -181,32 +189,125 @@ class CommandBuilder {
         $resolved = [];
 
         foreach ($arguments as $arg) {
-            $resolvedArg = $arg;
-            $wasPlaceholderOnly = false;
+            $arg = (string) $arg;
 
-            // Prüfen ob das Argument nur ein Platzhalter war
-            foreach ($replacements as $placeholder => $value) {
-                if ($arg === $placeholder) {
-                    $wasPlaceholderOnly = true;
+            // Fall B: Token besteht ausschließlich aus einem Platzhalter (z.B. "[INPUT]").
+            if (array_key_exists($arg, $replacements)) {
+                $value = (string) $replacements[$arg];
+                $trimmed = trim($value);
+
+                // Leerer Wert -> Argument weglassen (bisheriges Verhalten, z.B. [PERM] ohne Wert).
+                if ($trimmed === '') {
+                    continue;
                 }
-                $resolvedArg = str_replace($placeholder, $value, $resolvedArg);
-            }
 
-            // Argumente überspringen, die nur ein Platzhalter waren und jetzt leer sind
-            // (z.B. [PASSWORD] ohne Wert), aber nicht Argumente die absichtlich leer sein sollen
-            if ($wasPlaceholderOnly && trim($resolvedArg) === '') {
+                // Explizites Leerstring-Sentinel des Aufrufers ('' oder "") -> Shell-Leerstring.
+                if ($trimmed === "''" || $trimmed === '""') {
+                    $resolved[] = "''";
+                    continue;
+                }
+
+                // Vom Aufrufer bereits korrekt shell-escapte Token-Sequenz übernehmen
+                // (z.B. implode(' ', array_map('escapeshellarg', $files)) für mehrere
+                // Eingabedateien). Per Konstruktion injection-sicher.
+                if ($this->isShellQuotedSequence($trimmed)) {
+                    $resolved[] = $trimmed;
+                    continue;
+                }
+
+                // Untrusted Wert -> vollständig als EIN Shell-Token escapen.
+                $resolved[] = escapeshellarg($value);
                 continue;
             }
 
-            // Nur escapen wenn nicht bereits escaped oder Shell-Operatoren enthalten
-            if (!$this->shouldSkipEscaping($resolvedArg)) {
-                $resolved[] = escapeshellarg($resolvedArg);
-            } else {
-                $resolved[] = $resolvedArg;
+            // Fall C: Vom Autor vor-gequoteter Einzelplatzhalter ('[X]' oder "[X]").
+            $quotedInner = $this->unwrapQuotedPlaceholder($arg, $replacements);
+            if ($quotedInner !== null) {
+                $quote = $arg[0];
+                $value = (string) $replacements[$quotedInner];
+                // Wert quote-sicher einsetzen, die vom Autor gesetzten Quotes beibehalten.
+                $resolved[] = $quote . $this->escapeInsideQuotes($value, $quote) . $quote;
+                continue;
             }
+
+            // Enthält das Template überhaupt einen Platzhalter?
+            $hasPlaceholder = false;
+            foreach ($replacements as $placeholder => $value) {
+                if ($placeholder !== '' && str_contains($arg, $placeholder)) {
+                    $hasPlaceholder = true;
+                    break;
+                }
+            }
+
+            // Fall A: Kein Platzhalter -> reiner Template-Token (Shell-Operatoren, feste
+            // Flags, vom Autor gesetzte Literale). Vertrauenswürdig, alte Skip-Logik gilt.
+            if (!$hasPlaceholder) {
+                $resolved[] = $this->shouldSkipEscaping($arg) ? $arg : escapeshellarg($arg);
+                continue;
+            }
+
+            // Fall D: Text mit eingebettetem Platzhalter (z.B. "--password=[PASS]").
+            // Werte roh einsetzen, dann den GESAMTEN Token als ein Shell-Argument escapen,
+            // sodass eingesetzte Werte nicht aus dem Argument ausbrechen können.
+            $out = $arg;
+            foreach ($replacements as $placeholder => $value) {
+                if ($placeholder !== '') {
+                    $out = str_replace($placeholder, (string) $value, $out);
+                }
+            }
+            $resolved[] = escapeshellarg($out);
         }
 
         return $resolved;
+    }
+
+    /**
+     * Erkennt einen vom Autor gequoteten Einzelplatzhalter ('[X]' oder "[X]") und gibt
+     * den inneren Platzhalter-Schlüssel zurück, sofern dieser in den Ersetzungen existiert.
+     *
+     * @return string|null Der innere Platzhalter oder null, wenn kein solcher Fall vorliegt.
+     */
+    private function unwrapQuotedPlaceholder(string $arg, array $replacements): ?string {
+        if (strlen($arg) < 3) {
+            return null;
+        }
+
+        $quote = $arg[0];
+        if (($quote !== "'" && $quote !== '"') || $arg[strlen($arg) - 1] !== $quote) {
+            return null;
+        }
+
+        $inner = substr($arg, 1, -1);
+
+        return array_key_exists($inner, $replacements) ? $inner : null;
+    }
+
+    /**
+     * Prüft, ob ein Wert eine bereits korrekt einfach-gequotete Shell-Token-Sequenz ist,
+     * also aus einem oder mehreren durch einzelne Leerzeichen getrennten Tokens der Form
+     * '...' besteht (typisches Ergebnis von implode(' ', array_map('escapeshellarg', ...))).
+     *
+     * Solche Werte sind per Konstruktion injection-sicher (alles liegt innerhalb der
+     * Quotes) und dürfen daher unverändert übernommen werden.
+     */
+    private function isShellQuotedSequence(string $value): bool {
+        $token = "'(?:[^']|'\\\\'')*'";
+
+        return (bool) preg_match('/^' . $token . '(?: ' . $token . ')*$/', $value);
+    }
+
+    /**
+     * Escaped einen Wert für die Einbettung in einen bereits gequoteten Kontext,
+     * ohne die umgebenden Quotes selbst hinzuzufügen.
+     */
+    private function escapeInsideQuotes(string $value, string $quote): string {
+        if ($quote === "'") {
+            // Bash-Standard: ' -> '\'' (Quote schließen, escaptes ', Quote öffnen)
+            return str_replace("'", "'\\''", $value);
+        }
+
+        // Double-Quote-Kontext: Sonderzeichen entschärfen.
+        return str_replace(['\\', '"', '`', '$'], ['\\\\', '\\"', '\\`', '\\$'], $value);
     }
 
     /**

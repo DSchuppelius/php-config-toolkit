@@ -49,9 +49,6 @@ use Psr\Log\LogLevel;
 abstract class ConfigAbstract {
     use ErrorLog;
 
-    protected const COMPOSER_FILE = __DIR__ . '/../../../../composer.json';
-    protected const VERSION_FILE = __DIR__ . '/../../../../VERSION';
-
     /** @var array<class-string<static>, static> */
     protected static array $instances = [];
 
@@ -69,7 +66,9 @@ abstract class ConfigAbstract {
         $configDir = $configDir ?? static::getDefaultConfigDir();
         $configFiles = glob($configDir . '/*.json') ?: [];
 
-        $this->configLoader = ConfigLoader::getInstance();
+        // Isolierte ConfigLoader-Instanz pro konkreter Config-Klasse, damit sich
+        // verschiedene Toolkits/Projekte nicht denselben globalen Config-Namespace teilen.
+        $this->configLoader = ConfigLoader::getInstance(null, static::class);
         $this->configLoader->loadConfigFiles($configFiles, $throwOnError);
 
         $this->commandBuilder = new CommandBuilder($this->configLoader);
