@@ -19,7 +19,6 @@ class ConfigTypeCastTest extends TestCase {
     private function cast(mixed $value, string $type): mixed {
         $type_obj = (new \ReflectionClass(StructuredConfigType::class))->newInstanceWithoutConstructor();
         $m = new ReflectionMethod($type_obj, 'castValue');
-        $m->setAccessible(true);
         return $m->invoke($type_obj, $value, $type);
     }
 
