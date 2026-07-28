@@ -24,6 +24,12 @@ use SplFileInfo;
 /**
  * Dynamischer Klassenlader für das Plugin-System.
  * Lädt automatisch alle Klassen aus einem Verzeichnis, die ein bestimmtes Interface implementieren.
+ *
+ * Der Loader ist über das geforderte Interface generisch: reloadClasses() übernimmt nur
+ * instanziierbare Klassen, die $interface implementieren. Aufrufer erhalten daher aus
+ * getClasses() bereits passend eingeengte Klassennamen und brauchen keine eigene Prüfung.
+ *
+ * @template T of object
  */
 class ClassLoader {
     use ErrorLog;
@@ -34,12 +40,15 @@ class ClassLoader {
     /** @var string Basis-Namespace für die Klassen. */
     private string $namespace;
 
-    /** @var string Vollqualifizierter Name des erforderlichen Interfaces. */
+    /** @var class-string<T> Vollqualifizierter Name des erforderlichen Interfaces. */
     private string $interface;
 
-    /** @var array<class-string> Liste der geladenen Klassennamen. */
+    /** @var list<class-string<T>> Liste der geladenen Klassennamen. */
     private array $classes = [];
 
+    /**
+     * @param class-string<T> $interface Vollqualifizierter Name des erforderlichen Interfaces.
+     */
     public function __construct(string $directory, string $namespace, string $interface, ?LoggerInterface $logger = null) {
         $this->directory = realpath($directory) ?: $directory;
         $this->namespace = $namespace;
@@ -89,7 +98,7 @@ class ClassLoader {
                 if (!$reflectionClass->isInstantiable()) {
                     $this->logDebug("Klasse ist nicht instanziierbar (z.B. abstrakt): $className");
                     continue;
-                } elseif (!$reflectionClass->implementsInterface($this->interface)) {
+                } elseif (!is_a($className, $this->interface, true)) {
                     $this->logDebug("Klasse implementiert nicht das Interface $this->interface: $className");
                     continue;
                 }
@@ -143,7 +152,7 @@ class ClassLoader {
     /**
      * Gibt die geladenen Klassen zurück
      *
-     * @return array<class-string> Liste der geladenen Klassen
+     * @return list<class-string<T>> Liste der geladenen Klassen
      */
     public function getClasses(): array {
         return $this->classes;
