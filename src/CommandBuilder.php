@@ -284,15 +284,22 @@ class CommandBuilder {
     }
 
     /**
-     * Prüft, ob ein Wert eine bereits korrekt einfach-gequotete Shell-Token-Sequenz ist,
-     * also aus einem oder mehreren durch einzelne Leerzeichen getrennten Tokens der Form
-     * '...' besteht (typisches Ergebnis von implode(' ', array_map('escapeshellarg', ...))).
+     * Prüft, ob ein Wert eine bereits korrekt gequotete Shell-Token-Sequenz ist,
+     * also aus einem oder mehreren durch einzelne Leerzeichen getrennten Tokens
+     * besteht (typisches Ergebnis von implode(' ', array_map('escapeshellarg', ...))).
+     *
+     * escapeshellarg() ist plattformabhängig: unter POSIX entstehen '...'-Tokens,
+     * unter Windows "..."-Tokens. Beide Formen müssen erkannt werden, sonst wird die
+     * bereits escapte Sequenz erneut escaped und zu einem einzigen Argument verklebt.
      *
      * Solche Werte sind per Konstruktion injection-sicher (alles liegt innerhalb der
-     * Quotes) und dürfen daher unverändert übernommen werden.
+     * Quotes) und dürfen daher unverändert übernommen werden. Unter Windows entfernt
+     * escapeshellarg() eingebettete " vollständig, weshalb "[^"]*" exakt passt.
      */
     private function isShellQuotedSequence(string $value): bool {
-        $token = "'(?:[^']|'\\\\'')*'";
+        $token = $this->isWindows
+            ? '"[^"]*"'
+            : "'(?:[^']|'\\\\'')*'";
 
         return (bool) preg_match('/^' . $token . '(?: ' . $token . ')*$/', $value);
     }
