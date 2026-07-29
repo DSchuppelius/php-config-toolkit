@@ -13,7 +13,6 @@ declare(strict_types=1);
 namespace Tests;
 
 use ConfigToolkit\ConfigTypes\{ExecutableConfigType, PostmanConfigType};
-use Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,10 +20,10 @@ use PHPUnit\Framework\TestCase;
  */
 class ConfigTypesEdgeCasesTest extends TestCase {
     /**
-     * Regression: Ein required-Executable ohne 'path'-Key darf zwar eine Exception
-     * werfen, aber keine "Undefined array key"-Warning erzeugen.
+     * Regression: Ein required-Executable ohne 'path'-Key wird als nicht verfügbar
+     * geladen und darf dabei keine "Undefined array key"-Warning erzeugen.
      */
-    public function test_missing_path_key_throws_without_warning(): void {
+    public function test_missing_path_key_is_unavailable_without_warning(): void {
         $type = new ExecutableConfigType;
 
         $warnings = [];
@@ -35,10 +34,8 @@ class ConfigTypesEdgeCasesTest extends TestCase {
         });
 
         try {
-            $type->parse(['tools' => ['x' => ['required' => true]]]); // kein 'path'
-            $this->fail('Es sollte eine Exception geworfen werden.');
-        } catch (Exception $e) {
-            $this->assertStringContainsString("Fehlender ausführbarer Pfad für 'x'", $e->getMessage());
+            $result = $type->parse(['tools' => ['x' => ['required' => true]]]); // kein 'path'
+            $this->assertNull($result['tools']['x']['path']);
         } finally {
             restore_error_handler();
         }

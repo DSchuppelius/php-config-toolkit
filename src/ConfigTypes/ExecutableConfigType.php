@@ -14,7 +14,6 @@ namespace ConfigToolkit\ConfigTypes;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 use DirectoryIterator;
-use Exception;
 use UnexpectedValueException;
 
 /**
@@ -132,23 +131,28 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 $fileErrors = $this->checkRequiredFilesWithErrors($files2Check);
                 $folderErrors = $this->checkRequiredFoldersWithErrors($folders2Check);
 
+                $unavailable = false;
+
                 if ($required && empty($executablePath)) {
                     $configuredPath = is_string($executable['path'] ?? null) ? $executable['path'] : '(nicht gesetzt)';
-                    $this->logErrorAndThrow(Exception::class, "Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$configuredPath}').");
+                    $this->logError("Fehlender ausführbarer Pfad für '{$name}' in '{$category}' (Konfigurationswert: '{$configuredPath}'). Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
+                    $unavailable = true;
                 }
 
                 if ($required && !empty($fileErrors)) {
-                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
-                    $this->logErrorAndThrow(Exception::class, "Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
+                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
+                    $this->logError("Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
+                    $unavailable = true;
                 }
 
                 if ($required && !empty($folderErrors)) {
-                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
-                    $this->logErrorAndThrow(Exception::class, "Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails));
+                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
+                    $this->logError("Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
+                    $unavailable = true;
                 }
 
                 $parsed[$category][$name] = [
-                    'path' => $executablePath, // aufgelöster Pfad oder null
+                    'path' => $unavailable ? null : $executablePath, // aufgelöster Pfad oder null
                     'required' => $required,
                     'description' => $executable['description'] ?? '',
                     'arguments' => $arguments,

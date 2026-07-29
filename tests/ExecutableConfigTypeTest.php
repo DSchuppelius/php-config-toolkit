@@ -88,9 +88,10 @@ class ExecutableConfigTypeTest extends TestCase {
     }
 
     /**
-     * Testet Exception bei fehlendem required Executable
+     * Ein fehlendes required Executable wird als nicht verfügbar geladen (path => null)
+     * statt eine Exception zu werfen.
      */
-    public function test_parse_throws_exception_for_missing_required_executable(): void {
+    public function test_parse_marks_missing_required_executable_as_unavailable(): void {
         $data = [
             'tools' => [
                 'nonexistent' => [
@@ -100,10 +101,35 @@ class ExecutableConfigTypeTest extends TestCase {
             ],
         ];
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches("/Fehlender ausführbarer Pfad für 'nonexistent'/");
+        $result = $this->configType->parse($data);
 
-        $this->configType->parse($data);
+        $this->assertArrayHasKey('nonexistent', $result['tools']);
+        $this->assertNull($result['tools']['nonexistent']['path']);
+        $this->assertTrue($result['tools']['nonexistent']['required']);
+    }
+
+    /**
+     * Ein einzelnes unbrauchbares required Executable darf die übrigen Einträge derselben
+     * Konfiguration nicht mitreißen (sonst verwirft der ConfigLoader die komplette Datei).
+     */
+    public function test_parse_keeps_other_executables_when_required_one_is_missing(): void {
+        $data = [
+            'tools' => [
+                'ping' => [
+                    'path' => 'ping',
+                    'required' => true,
+                ],
+                'nonexistent' => [
+                    'path' => 'this-does-not-exist-anywhere-on-this-system-really',
+                    'required' => true,
+                ],
+            ],
+        ];
+
+        $result = $this->configType->parse($data);
+
+        $this->assertNotNull($result['tools']['ping']['path']);
+        $this->assertNull($result['tools']['nonexistent']['path']);
     }
 
     /**
@@ -174,10 +200,9 @@ class ExecutableConfigTypeTest extends TestCase {
             ],
         ];
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches("/Erforderliche Zusatzdateien nicht verfügbar/");
-
-        $this->configType->parse($dataWithMissingFile);
+        // Fehlende Zusatzdatei bei required => Eintrag wird als nicht verfügbar geladen
+        $resultWithMissingFile = $this->configType->parse($dataWithMissingFile);
+        $this->assertNull($resultWithMissingFile['tools']['testTool']['path']);
 
         // Aufräumen
         if (file_exists($tempFile2)) {
