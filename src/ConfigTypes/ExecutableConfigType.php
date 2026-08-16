@@ -140,13 +140,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 }
 
                 if ($required && !empty($fileErrors)) {
-                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
+                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
                     $this->logError("Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
                     $unavailable = true;
                 }
 
                 if ($required && !empty($folderErrors)) {
-                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
+                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
                     $this->logError("Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
                     $unavailable = true;
                 }
