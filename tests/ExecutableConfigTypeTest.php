@@ -602,8 +602,11 @@ class ExecutableConfigTypeTest extends TestCase {
         $this->assertSame(0, $exitCode, 'Probe-Skript abgebrochen: ' . $joined);
         $this->assertStringContainsString("'disallowed' => false", $joined);
         $this->assertStringContainsString("'allowed' => true", $joined);
-        $this->assertStringContainsString("'find_relative' => NULL", $joined);
-        $this->assertStringContainsString("'find_absolute' => NULL", $joined);
+        // which-Treffer und konfigurierte absolute Pfade außerhalb von
+        // open_basedir werden durchgereicht (Shell-Ausführung unterliegt
+        // open_basedir nicht) statt verworfen.
+        $this->assertStringContainsString("'find_relative' => '/", $joined);
+        $this->assertStringContainsString("'find_absolute' => '/usr/bin/sh'", $joined);
         $this->assertStringContainsString("'parse_ok' => true", $joined);
     }
 }

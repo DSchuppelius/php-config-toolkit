@@ -715,7 +715,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $isAbsoluteWindowsPath = (bool) preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
 
         if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
-            return $this->isPathWithinOpenBasedir($command) && @file_exists($command) ? $command : null;
+            // Außerhalb von open_basedir ist keine Datei-Probe möglich; die
+            // Ausführung läuft aber über die Shell, die open_basedir nicht
+            // unterliegt — konfigurierten Pfaden daher vertrauen statt verwerfen.
+            if (!$this->isPathWithinOpenBasedir($command)) {
+                return $command;
+            }
+            return @file_exists($command) ? $command : null;
         }
 
         // 1) PATH-Suche ohne exec (entscheidend für deinen Fall "file" auf Linux)
@@ -738,7 +744,19 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             $pathsToTest = array_slice($output, 0, 3);
             foreach ($pathsToTest as $line) {
                 $line = trim((string) $line);
-                if ($line !== '' && $this->isPathWithinOpenBasedir($line) && @file_exists($line)) {
+                if ($line === '') {
+                    continue;
+                }
+
+                // which/where hat Existenz + Ausführbarkeit bereits geprüft.
+                // Liegt der Treffer außerhalb von open_basedir, ist keine
+                // PHP-seitige Datei-Probe möglich — der Shell-Ausführung steht
+                // open_basedir aber nicht im Weg: dem Treffer vertrauen.
+                if (!$this->isPathWithinOpenBasedir($line)) {
+                    return $line;
+                }
+
+                if (@file_exists($line)) {
                     if ($this->isKnownSafeExecutable($line)) {
                         return $line;
                     }
