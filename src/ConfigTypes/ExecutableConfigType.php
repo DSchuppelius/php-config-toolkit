@@ -140,13 +140,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 }
 
                 if ($required && !empty($fileErrors)) {
-                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
+                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
                     $this->logError("Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
                     $unavailable = true;
                 }
 
                 if ($required && !empty($folderErrors)) {
-                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
+                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
                     $this->logError("Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
                     $unavailable = true;
                 }
@@ -624,7 +624,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         // Normalisiere Pfade für konsistenten Vergleich
         $normalizedPaths = [];
         foreach ($paths as $path) {
-            $realPath = realpath($path);
+            $realPath = @realpath($path);
             if ($realPath !== false) {
                 $normalizedPaths[] = $realPath;
             } else {
@@ -651,11 +651,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         // Normalisiere den zu prüfenden Pfad
-        $realPath = realpath($path);
+        $realPath = @realpath($path);
         if ($realPath === false) {
             // Datei existiert nicht, prüfe ob Parent-Verzeichnis erlaubt ist
             $parentDir = dirname($path);
-            $realPath = realpath($parentDir);
+            $realPath = @realpath($parentDir);
             if ($realPath === false) {
                 return false;
             }

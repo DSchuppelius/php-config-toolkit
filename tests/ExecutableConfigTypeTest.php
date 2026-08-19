@@ -572,4 +572,35 @@ class ExecutableConfigTypeTest extends TestCase {
             $this->assertSame($installer, $result['tools']['test']['installer']);
         }
     }
+
+    /**
+     * Regression: isPathWithinOpenBasedir() darf unter aktivem open_basedir keine
+     * Warnung auslösen — realpath() auf einem verbotenen Pfad warnt selbst, und
+     * Laravel-artige Error-Handler machen daraus eine ErrorException. Da sich
+     * open_basedir nicht im laufenden Prozess setzen lässt, läuft die Probe als
+     * Subprozess mit -d open_basedir.
+     */
+    public function test_is_path_within_open_basedir_triggers_no_warning_under_open_basedir(): void {
+        if ($this->isWindows) {
+            $this->markTestSkipped('open_basedir-Szenario wird nur unter Linux/Unix getestet.');
+        }
+
+        $repoRoot = dirname(__DIR__);
+        $script = __DIR__ . '/scripts/open_basedir_probe.php';
+
+        $cmd = sprintf(
+            '%s -d open_basedir=%s -d error_reporting=%d %s 2>&1',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($repoRoot),
+            E_ALL,
+            escapeshellarg($script)
+        );
+
+        exec($cmd, $output, $exitCode);
+        $joined = implode("\n", $output);
+
+        $this->assertSame(0, $exitCode, 'Probe-Skript abgebrochen: ' . $joined);
+        $this->assertStringContainsString("'disallowed' => false", $joined);
+        $this->assertStringContainsString("'allowed' => true", $joined);
+    }
 }
