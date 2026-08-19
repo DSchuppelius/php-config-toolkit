@@ -602,5 +602,8 @@ class ExecutableConfigTypeTest extends TestCase {
         $this->assertSame(0, $exitCode, 'Probe-Skript abgebrochen: ' . $joined);
         $this->assertStringContainsString("'disallowed' => false", $joined);
         $this->assertStringContainsString("'allowed' => true", $joined);
+        $this->assertStringContainsString("'find_relative' => NULL", $joined);
+        $this->assertStringContainsString("'find_absolute' => NULL", $joined);
+        $this->assertStringContainsString("'parse_ok' => true", $joined);
     }
 }

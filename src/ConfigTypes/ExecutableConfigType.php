@@ -140,13 +140,13 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 }
 
                 if ($required && !empty($fileErrors)) {
-                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
+                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($fileErrors), $fileErrors);
                     $this->logError("Erforderliche Zusatzdateien nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
                     $unavailable = true;
                 }
 
                 if ($required && !empty($folderErrors)) {
-                    $errorDetails = array_map(fn($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
+                    $errorDetails = array_map(fn ($path, $error) => "{$path} ({$error})", array_keys($folderErrors), $folderErrors);
                     $this->logError("Erforderliche Zusatzordner nicht verfügbar für '{$name}' in '{$category}': " . implode(", ", $errorDetails) . ". Eintrag wird als nicht verfügbar geladen, abhängige Funktionen sind deaktiviert.");
                     $unavailable = true;
                 }
@@ -330,11 +330,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return null; // Symlink ist ok
         }
 
-        if (!file_exists($path)) {
+        if (!@file_exists($path)) {
             return 'existiert nicht';
         }
 
-        if (!is_readable($path)) {
+        if (!@is_readable($path)) {
             return 'existiert, aber kein Lesezugriff';
         }
 
@@ -368,15 +368,15 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return null; // Symlink ist ok
         }
 
-        if (!file_exists($path)) {
+        if (!@file_exists($path)) {
             return 'existiert nicht';
         }
 
-        if (!is_dir($path)) {
+        if (!@is_dir($path)) {
             return 'ist keine Verzeichnis';
         }
 
-        if (!is_readable($path)) {
+        if (!@is_readable($path)) {
             return 'existiert, aber kein Lesezugriff';
         }
 
@@ -453,7 +453,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         // Windows: `is_executable()` ist unzuverlässig, daher nur `file_exists()` prüfen
-        return $this->isWindows ? file_exists($path) : (file_exists($path) && is_executable($path));
+        return $this->isWindows ? @file_exists($path) : (@file_exists($path) && @is_executable($path));
     }
 
     /**
@@ -715,7 +715,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         $isAbsoluteWindowsPath = (bool) preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\]{2,}[^\\\\]+[\\\\][^\\\\]+)/', $command);
 
         if ($isAbsoluteUnixPath || $isAbsoluteWindowsPath) {
-            return file_exists($command) ? $command : null;
+            return $this->isPathWithinOpenBasedir($command) && @file_exists($command) ? $command : null;
         }
 
         // 1) PATH-Suche ohne exec (entscheidend für deinen Fall "file" auf Linux)
@@ -738,7 +738,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             $pathsToTest = array_slice($output, 0, 3);
             foreach ($pathsToTest as $line) {
                 $line = trim((string) $line);
-                if ($line !== '' && file_exists($line)) {
+                if ($line !== '' && $this->isPathWithinOpenBasedir($line) && @file_exists($line)) {
                     if ($this->isKnownSafeExecutable($line)) {
                         return $line;
                     }
@@ -793,17 +793,18 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         }
 
         foreach ($standardPaths as $dir) {
-            if (!is_dir($dir)) {
-                continue;
-            }
-
-            // Prüfe open_basedir Beschränkung
+            // open_basedir VOR dem Dateisystemzugriff prüfen: is_dir() auf einem
+            // verbotenen Pfad löst selbst die open_basedir-Warnung aus.
             if (!$this->isPathWithinOpenBasedir($dir)) {
                 continue;
             }
 
+            if (!@is_dir($dir)) {
+                continue;
+            }
+
             $candidate = rtrim($dir, '/') . '/' . $command;
-            if (file_exists($candidate) && is_executable($candidate)) {
+            if (@file_exists($candidate) && @is_executable($candidate)) {
                 return $candidate;
             }
         }
@@ -842,8 +843,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
             foreach ($extensions as $ext) {
                 $candidate = rtrim($dir, "\\/") . DIRECTORY_SEPARATOR . $command . $ext;
-                if (file_exists($candidate)) {
-                    if ($this->isWindows || is_executable($candidate)) {
+                if (@file_exists($candidate)) {
+                    if ($this->isWindows || @is_executable($candidate)) {
                         return $candidate;
                     }
                 }
@@ -866,7 +867,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * Schnelle Ausführbarkeits-Prüfung ohne tatsächliche Ausführung.
      */
     protected function quickTestExecutability(string $path): bool {
-        if (!file_exists($path)) {
+        if (!$this->isPathWithinOpenBasedir($path) || !@file_exists($path)) {
             return false;
         }
 
@@ -878,10 +879,10 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 return pathinfo($path, PATHINFO_EXTENSION) === 'exe';
             }
 
-            return pathinfo($path, PATHINFO_EXTENSION) === 'exe' && filesize($path) > 0;
+            return pathinfo($path, PATHINFO_EXTENSION) === 'exe' && @filesize($path) > 0;
         }
 
-        return is_executable($path);
+        return @is_executable($path);
     }
 
     /**
@@ -908,7 +909,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
                 continue;
             }
 
-            if (file_exists($possiblePath)) {
+            if (@file_exists($possiblePath)) {
                 return $possiblePath;
             }
         }
@@ -926,12 +927,12 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         ];
 
         foreach ($programDirs as $programDir) {
-            if (!is_dir($programDir)) {
+            // open_basedir VOR dem Dateisystemzugriff prüfen (siehe searchInLinuxDirectories)
+            if (!$this->isPathWithinOpenBasedir($programDir)) {
                 continue;
             }
 
-            // Prüfe open_basedir Beschränkung
-            if (!$this->isPathWithinOpenBasedir($programDir)) {
+            if (!@is_dir($programDir)) {
                 continue;
             }
 
@@ -975,7 +976,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
         foreach ($subDirs as $subDir) {
             $searchPath = $subDir === '' ? $programPath : $programPath . DIRECTORY_SEPARATOR . $subDir;
 
-            if (!is_dir($searchPath)) {
+            if (!@is_dir($searchPath)) {
                 continue;
             }
 
@@ -986,7 +987,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             ];
 
             foreach ($possibleFiles as $possiblePath) {
-                if (file_exists($possiblePath)) {
+                if (@file_exists($possiblePath)) {
                     return $possiblePath;
                 }
             }
