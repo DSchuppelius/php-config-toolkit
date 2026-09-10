@@ -131,6 +131,10 @@ class ClassLoader {
             }
         }
 
+        // readdir() liefert Einträge in maschinenabhängiger Reihenfolge — sortiert
+        // laden, damit Registrierungs-Reihenfolgen über Checkouts reproduzierbar sind.
+        sort($files);
+
         return $files;
     }
 
