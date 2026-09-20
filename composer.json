@@ -1,14 +1,21 @@
 {
     "name": "dschuppelius/php-config-toolkit",
     "description": "Ein Toolkit für JSON-basierte Konfigurationsverwaltung",
+    "homepage": "https://github.com/DSchuppelius/php-config-toolkit",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "Daniel Joerg Schuppelius",
-            "email": "info@schuppelius.org"
+            "email": "info@schuppelius.org",
+            "homepage": "https://schuppelius.org",
+            "role": "Developer"
         }
     ],
+    "support": {
+        "issues": "https://github.com/DSchuppelius/php-config-toolkit/issues",
+        "source": "https://github.com/DSchuppelius/php-config-toolkit"
+    },
     "prefer-stable": true,
     "config": {
         "platform": {
