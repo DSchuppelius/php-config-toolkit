@@ -88,6 +88,13 @@ class ClassLoader {
             }
 
             if (!class_exists($className)) {
+                // Traits, Interfaces und Enums liegen regulaer neben den Plugin-Klassen;
+                // sie sind kein Ladefehler und werden nur im Debug-Log erwaehnt.
+                if ($this->isNonClassType($className)) {
+                    $this->logDebug("Kein Klassentyp (Trait/Interface/Enum), uebersprungen: $className");
+                    continue;
+                }
+
                 $this->logWarning("Klasse nicht gefunden oder nicht autoloaded: $className");
                 continue;
             }
@@ -109,6 +116,19 @@ class ClassLoader {
                 $this->logError("Fehler beim Verarbeiten der Klasse $className: " . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Prueft, ob der Name einen deklarierten Trait, ein Interface oder ein Enum bezeichnet.
+     *
+     * Enums bestehen class_exists() bereits und landen als nicht instanziierbar im
+     * Debug-Log; die Pruefung hier ist fuer sie nur der Vollstaendigkeit halber
+     * (enum_exists() gibt es erst ab PHP 8.1).
+     */
+    private function isNonClassType(string $name): bool {
+        return trait_exists($name)
+            || interface_exists($name)
+            || (function_exists('enum_exists') && enum_exists($name));
     }
 
     /**
