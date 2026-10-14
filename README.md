@@ -298,6 +298,12 @@ Für Shell-Tools und externe Programme:
 }
 ```
 
+**Programmsuche:** Ein `path` ohne Verzeichnis wird zuerst ohne Prozess über `PATH` aufgelöst, dann über
+typische Installationsordner. Verbirgt `open_basedir` die `PATH`-Verzeichnisse, fragt das Toolkit `which`
+(Unix) bzw. `where` (Windows) — ohne Shell (Programm und Name als Argumentliste über `proc_open()`) und mit
+einer Zeitgrenze von 5 s. Seit 0.5.11 startet das Toolkit keine Shell mehr (`shell_exec()`/`exec()` entfallen);
+ist `proc_open()` gesperrt, bleibt es bei der Suche ohne Prozess.
+
 #### Unterstützte Installer
 
 Das `installer`-Feld gibt an, mit welchem Paketmanager das Tool installiert werden soll. **Wenn nicht angegeben, wird `apt` als Standard verwendet.**

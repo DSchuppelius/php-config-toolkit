@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace ConfigToolkit\ConfigTypes;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
+use ConfigToolkit\Helper\ProcessRunner;
 use DirectoryIterator;
 use UnexpectedValueException;
 
@@ -89,6 +90,9 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     ];
 
     protected bool $isWindows;
+
+    /** Zeitgrenze in Sekunden für which/where. */
+    protected const LOOKUP_TIMEOUT = 5.0;
 
     /** @var bool|null Gecachter Wert für exec-Verfügbarkeit */
     protected static ?bool $canUseExecCache = null;
@@ -458,23 +462,39 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Plattformunabhängige Prüfung, ob ein Befehl ausführbar ist.
+     *
+     * Erst ohne Prozess über PATH; findet PHP ihn dort nicht (etwa weil
+     * open_basedir die PATH-Verzeichnisse verbirgt), fragt which bzw. where -
+     * ohne Shell und mit Zeitgrenze, deren Suche unterliegt open_basedir nicht.
      */
     protected function isCommandExecutableCrossPlatform(string $command): bool {
-        // Auf gehärteten Hosts kann shell_exec deaktiviert sein. Dann hier abbrechen –
-        // der Aufrufer fällt anschließend auf findExecutablePath() (PATH ohne exec) zurück.
-        if (!$this->canUseShellExec()) {
-            return false;
+        if ($this->resolveFromPath($command) !== null) {
+            return true;
         }
 
-        if ($this->isWindows) {
-            $command = escapeshellarg($command);
-            $result = shell_exec("where {$command} 2>NUL");
-            return !empty($result);
+        return $this->lookupCommand($command) !== [];
+    }
+
+    /**
+     * Fragt which (Unix) bzw. where (Windows) nach einem Befehl: Programm und
+     * Name als Argumentliste ohne Shell, Abbruch nach LOOKUP_TIMEOUT.
+     *
+     * @return list<string> Gefundene Pfade (leer, wenn nichts gefunden wurde oder
+     *                      keine Prozesse gestartet werden dürfen).
+     */
+    protected function lookupCommand(string $command): array {
+        if (!$this->canUseProcOpen()) {
+            return [];
         }
 
-        $command = escapeshellarg($command);
-        $result = shell_exec("command -v {$command} 2>/dev/null");
-        return !empty($result);
+        $result = ProcessRunner::run([$this->isWindows ? 'where' : 'which', $command], self::LOOKUP_TIMEOUT);
+        if ($result === null || $result['exitCode'] !== 0) {
+            return [];
+        }
+
+        $lines = preg_split('/\R/', $result['output']) ?: [];
+
+        return array_values(array_filter(array_map('trim', $lines), static fn (string $line): bool => $line !== ''));
     }
 
     /**
@@ -551,8 +571,18 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     }
 
     /**
+     * Prüft ob proc_open nutzbar ist (shared hosting / hardened php.ini) - darüber
+     * laufen which/where ohne Shell.
+     */
+    protected function canUseProcOpen(): bool {
+        return ProcessRunner::canStartProcesses();
+    }
+
+    /**
      * Prüft ob exec nutzbar ist (shared hosting / hardened php.ini).
      * Ergebnis wird gecacht für bessere Performance.
+     *
+     * @deprecated Seit 0.5.11 ungenutzt: which/where laufen über proc_open ohne Shell ({@see canUseProcOpen()}).
      */
     protected function canUseExec(): bool {
         if (self::$canUseExecCache !== null) {
@@ -575,6 +605,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
     /**
      * Prüft ob shell_exec nutzbar ist (shared hosting / hardened php.ini).
      * Ergebnis wird gecacht für bessere Performance.
+     *
+     * @deprecated Seit 0.5.11 ungenutzt: das Toolkit startet keine Shell mehr ({@see canUseProcOpen()}).
      */
     protected function canUseShellExec(): bool {
         if (self::$canUseShellExecCache !== null) {
@@ -701,8 +733,8 @@ class ExecutableConfigType extends ConfigTypeAbstract {
 
     /**
      * Sucht eine ausführbare Datei im `PATH`.
-     * - Erst ohne exec (PATH manuell), damit es auch bei disabled exec funktioniert
-     * - Danach optional which/where
+     * - Erst ohne Prozess (PATH manuell), damit es auch ohne proc_open funktioniert
+     * - Danach optional which/where (ohne Shell, mit Zeitgrenze)
      * - Windows: optional Common-Path Search
      */
     protected function findExecutablePath(?string $command): ?string {
@@ -730,24 +762,11 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return $resolved;
         }
 
-        // 2) Fallback über which/where (wenn exec erlaubt)
-        if ($this->canUseExec()) {
-            $output = [];
-            $exitCode = 0;
-
-            $lookupCommand = $this->isWindows ? 'where' : 'which';
-            $nullDevice = $this->isWindows ? 'nul' : '/dev/null';
-
-            @exec($lookupCommand . ' ' . escapeshellarg($command) . ' 2>' . $nullDevice, $output, $exitCode);
-
+        // 2) Fallback über which/where (ohne Shell, mit Zeitgrenze; wenn proc_open erlaubt)
+        if ($this->canUseProcOpen()) {
             // Falls mehrere Treffer, teste nur die ersten 3
-            $pathsToTest = array_slice($output, 0, 3);
+            $pathsToTest = array_slice($this->lookupCommand($command), 0, 3);
             foreach ($pathsToTest as $line) {
-                $line = trim((string) $line);
-                if ($line === '') {
-                    continue;
-                }
-
                 // which/where hat Existenz + Ausführbarkeit bereits geprüft.
                 // Liegt der Treffer außerhalb von open_basedir, ist keine
                 // PHP-seitige Datei-Probe möglich — der Shell-Ausführung steht
