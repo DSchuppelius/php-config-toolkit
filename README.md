@@ -27,7 +27,7 @@ composer require dschuppelius/php-config-toolkit
 ## Anforderungen
 
 - PHP 8.0 - 8.5
-- [dschuppelius/php-error-toolkit](https://github.com/DSchuppelius/php-error-toolkit) ^1.2
+- [dschuppelius/php-error-toolkit](https://github.com/DSchuppelius/php-error-toolkit) ^2.1
 
 ## Verwendung
 
@@ -81,15 +81,16 @@ $command = $builder->build('pdftotext', [
     '[PDF-FILE]' => '/path/to/document.pdf',
     '[TEXT-FILE]' => '/path/to/output.txt'
 ]);
-// Ergebnis: "'pdftotext' -layout -enc UTF-8 '/path/to/document.pdf' '/path/to/output.txt'"
-// (Pfad und eingesetzte Werte werden zur Sicherheit shell-escaped)
+// Ergebnis: "'pdftotext' '-layout' '-enc' 'UTF-8' '/path/to/document.pdf' '/path/to/output.txt'"
+// (Programm und jedes Argument werden zur Sicherheit shell-escaped)
 
 // Java-Befehl bauen
 $command = $builder->buildJava('pdfbox', [
     '[INPUT]' => '/path/to/input.pdf',
     '[OUTPUT]' => '/path/to/output.txt'
 ]);
-// Ergebnis: "java -jar '/path/to/pdfbox.jar' export:text -i '/path/to/input.pdf' -o '/path/to/output.txt'"
+// Ergebnis: "'java' -jar '/usr/local/lib/pdfbox-app.jar' 'export:text' '-i' '/path/to/input.pdf' '-o' '/path/to/output.txt'"
+// (Jar-Pfad aus javaExecutables.pdfbox.path; null, wenn das Jar nicht existiert)
 
 // Verfügbarkeit prüfen
 if ($builder->isAvailable('pdftotext')) {
@@ -361,8 +362,12 @@ Für plattformspezifische Pfade (Windows/Linux):
 
 Für komplexere Strukturen mit verschachtelten Werten:
 
+Erkannt wird sie, wenn neben key/value-Sektionen mindestens eine flache Werteliste steht (hier
+`AllowedExtensions`); nur key/value-Sektionen sind eine `StructuredConfigType`.
+
 ```json
 {
+  "AllowedExtensions": ["pdf", "tif", "jpg"],
   "PDFSettings": [
     {"key": "tesseract_lang", "value": "deu+eng", "type": "text", "enabled": true},
     {"key": "tesseract_psm", "value": "3", "type": "int", "enabled": true},
@@ -385,11 +390,11 @@ Für komplexere Strukturen mit verschachtelten Werten:
 
 | ConfigType | Beschreibung | Erkennungsmerkmal |
 | ---------- | ------------ | ----------------- |
-| `StructuredConfigType` | Standard key/value/enabled-Struktur | Arrays mit `key`, `value`, `enabled` |
-| `AdvancedStructuredConfigType` | Erweiterte Struktur mit flachen Arrays | Verschachtelte Arrays ohne Executable-Keys |
+| `StructuredConfigType` | Standard key/value/enabled-Struktur | Arrays mit `key` und `value` (`enabled` optional) |
+| `AdvancedStructuredConfigType` | Erweiterte Struktur mit flachen Arrays | mind. eine flache Werteliste plus key/value-Sektionen |
 | `ExecutableConfigType` | Executable-Pfade mit Argumenten | `path` vorhanden, kein `windowsPath`/`linuxPath` |
 | `CrossPlatformExecutableConfigType` | Plattformspezifische Executables | `windowsPath` UND `linuxPath` vorhanden |
-| `PostmanConfigType` | Postman Collection-Exporte | `info` und `item` Keys |
+| `PostmanConfigType` | Postman-Umgebungs-Exporte | `id`, `name` und `values`-Array |
 
 ## Platzhalter in Executable-Konfigurationen
 
@@ -410,11 +415,16 @@ Sie können beliebige eigene Platzhalter definieren - der CommandBuilder ersetzt
 
 ## Eigene ConfigTypes erstellen
 
-1. Erstelle eine neue Klasse in `src/ConfigTypes/` die `ConfigTypeAbstract` erweitert
+1. Erstelle im Toolkit selbst eine neue Klasse in `src/ConfigTypes/` (Namespace `ConfigToolkit\ConfigTypes`),
+   die `ConfigTypeAbstract` erweitert — die `ConfigTypeRegistry` durchsucht nur diesen Ordner, eine
+   Registrierung von außen gibt es nicht
 2. Implementiere die Methoden `matches()`, `parse()` und `validate()`
-3. Der ClassLoader erkennt und registriert die Klasse automatisch
+3. Die Registry erkennt die Klasse automatisch und prüft sie mit Priorität 50 (zwischen den
+   Executable-Typen und dem Fallback `StructuredConfigType`)
 
 ```php
+namespace ConfigToolkit\ConfigTypes;
+
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
 
 class MyConfigType extends ConfigTypeAbstract {
