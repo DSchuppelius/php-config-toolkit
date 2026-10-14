@@ -301,7 +301,8 @@ Für Shell-Tools und externe Programme:
 
 **Programmsuche:** Ein `path` ohne Verzeichnis wird zuerst ohne Prozess über `PATH` aufgelöst, dann über
 typische Installationsordner. Verbirgt `open_basedir` die `PATH`-Verzeichnisse, fragt das Toolkit `which`
-(Unix) bzw. `where` (Windows) — ohne Shell (Programm und Name als Argumentliste über `proc_open()`) und mit
+(Unix) bzw. `where` (Windows) — ohne Shell (Programm und Name als Argumentliste über `ProcessHelper` aus dem
+error-toolkit, ab 2.8.1) und mit
 einer Zeitgrenze von 5 s. Seit 0.5.11 startet das Toolkit keine Shell mehr (`shell_exec()`/`exec()` entfallen);
 ist `proc_open()` gesperrt, bleibt es bei der Suche ohne Prozess.
 
