@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3cc4f2c2232f2cfdc147faf9c81c0004",
+    "content-hash": "1c6e3cac36350b784813940c74c6036f",
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
-            "version": "v2.7.3",
+            "version": "v2.8.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DSchuppelius/php-error-toolkit.git",
-                "reference": "c0e815416a986fa73ea2ed99c74704420b84f484"
+                "reference": "148eece946d9d327c14dd604489da46d275d9034"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/c0e815416a986fa73ea2ed99c74704420b84f484",
-                "reference": "c0e815416a986fa73ea2ed99c74704420b84f484",
+                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/148eece946d9d327c14dd604489da46d275d9034",
+                "reference": "148eece946d9d327c14dd604489da46d275d9034",
                 "shasum": ""
             },
             "require": {
@@ -55,15 +55,18 @@
             "authors": [
                 {
                     "name": "Daniel Joerg Schuppelius",
-                    "email": "info@schuppelius.org"
+                    "email": "info@schuppelius.org",
+                    "homepage": "https://schuppelius.org",
+                    "role": "Developer"
                 }
             ],
             "description": "Logging and error handling foundation for the Schuppelius PHP toolkits (PSR-3 loggers, global error handler, LoggerRegistry, Laravel bridge)",
+            "homepage": "https://github.com/DSchuppelius/php-error-toolkit",
             "support": {
                 "issues": "https://github.com/DSchuppelius/php-error-toolkit/issues",
-                "source": "https://github.com/DSchuppelius/php-error-toolkit/tree/v2.7.3"
+                "source": "https://github.com/DSchuppelius/php-error-toolkit"
             },
-            "time": "2026-09-16T08:41:01+00:00"
+            "time": "2026-10-14T07:25:17+00:00"
         },
         {
             "name": "psr/log",
@@ -2030,5 +2033,5 @@
     "platform-overrides": {
         "php": "8.2.0"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

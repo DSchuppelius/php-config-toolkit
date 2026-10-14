@@ -5,63 +5,14 @@ declare(strict_types=1);
 namespace Tests;
 
 use ConfigToolkit\ConfigTypes\ExecutableConfigType;
-use ConfigToolkit\Helper\ProcessRunner;
-use InvalidArgumentException;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 /**
- * Tests für den Prozessstart ohne Shell und mit Zeitgrenze (which/where in der
- * Programmsuche von ExecutableConfigType).
+ * Tests für die Programmsuche von ExecutableConfigType: which/where laufen über
+ * ProcessHelper aus dem error-toolkit, ohne Shell und mit Zeitgrenze.
  */
-class ProcessRunnerTest extends TestCase {
-    public function test_run_returns_output_and_exit_code_without_a_shell(): void {
-        $argument = 'a b;c $(x) `y` | z > /tmp/nie';
-        $result = ProcessRunner::run([PHP_BINARY, '-r', 'fwrite(STDERR, "fehler"); echo $argv[1] . "[" . stream_get_contents(STDIN) . "]"; exit(3);', $argument]);
-
-        $this->assertNotNull($result);
-        $this->assertSame(3, $result['exitCode']);
-        $this->assertSame($argument . '[]', $result['output'], 'Argumente unverändert, stderr verworfen, stdin leer');
-        $this->assertFalse($result['timedOut']);
-    }
-
-    public function test_timeout_terminates_the_process(): void {
-        $started = microtime(true);
-        $result = ProcessRunner::run([PHP_BINARY, '-r', 'sleep(5);'], 0.5);
-
-        $this->assertNotNull($result);
-        $this->assertTrue($result['timedOut']);
-        $this->assertNull($result['exitCode']);
-        $this->assertLessThan(3.0, microtime(true) - $started);
-    }
-
-    public function test_large_output_does_not_block(): void {
-        $result = ProcessRunner::run([PHP_BINARY, '-r', 'echo str_repeat("x", 3 * 1048576); fwrite(STDERR, str_repeat("e", 1048576));'], 10.0);
-
-        $this->assertNotNull($result);
-        $this->assertSame(0, $result['exitCode']);
-        $this->assertSame(1048576, strlen($result['output']));
-    }
-
-    public function test_missing_program_returns_null(): void {
-        $this->assertNull(ProcessRunner::run(['gibt-es-nicht-' . bin2hex(random_bytes(4))]));
-        $this->assertNull(ProcessRunner::run([]));
-    }
-
-    /**
-     * @return array<string, array{0: float}>
-     */
-    public static function invalidTimeouts(): array {
-        return ['null' => [0.0], 'negativ' => [-1.0], 'unendlich' => [INF], 'nan' => [NAN]];
-    }
-
-    #[DataProvider('invalidTimeouts')]
-    public function test_invalid_timeout_is_rejected(float $timeout): void {
-        $this->expectException(InvalidArgumentException::class);
-        ProcessRunner::run([PHP_BINARY, '-r', 'echo 1;'], $timeout);
-    }
-
+class ExecutableLookupTest extends TestCase {
     public function test_lookup_finds_programs_and_never_runs_the_name_as_a_command(): void {
         if (PHP_OS_FAMILY === 'Windows') {
             $this->markTestSkipped('which-Test nur unter Unix.');
@@ -82,7 +33,7 @@ class ProcessRunnerTest extends TestCase {
     }
 
     /**
-     * Prozesse startet im Toolkit nur ProcessRunner - ohne Shell und mit Zeitgrenze.
+     * Prozesse startet das Toolkit nur über ProcessHelper - ohne Shell und mit Zeitgrenze.
      */
     public function test_no_other_class_starts_processes_or_shells(): void {
         $forbidden = ['exec', 'shell_exec', 'system', 'passthru', 'popen', 'proc_open', 'pcntl_exec'];
@@ -106,9 +57,7 @@ class ProcessRunnerTest extends TestCase {
                 if (!in_array($name, $forbidden, true) || !$this->isFunctionCall($tokens, $index)) {
                     continue;
                 }
-                if (!($name === 'proc_open' && $file->getFilename() === 'ProcessRunner.php')) {
-                    $findings[] = $file->getFilename() . ':' . $token[2] . ' ' . $name . '()';
-                }
+                $findings[] = $file->getFilename() . ':' . $token[2] . ' ' . $name . '()';
             }
         }
 

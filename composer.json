@@ -39,7 +39,7 @@
     },
     "require": {
         "php": ">=8.0 <8.6",
-        "dschuppelius/php-error-toolkit": "^2.1"
+        "dschuppelius/php-error-toolkit": "^2.8.1"
     },
     "scripts": {
         "test": "vendor/bin/phpunit",

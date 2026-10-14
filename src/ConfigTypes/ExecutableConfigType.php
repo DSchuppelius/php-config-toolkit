@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace ConfigToolkit\ConfigTypes;
 
 use ConfigToolkit\Contracts\Abstracts\ConfigTypeAbstract;
-use ConfigToolkit\Helper\ProcessRunner;
 use DirectoryIterator;
+use ERRORToolkit\Helper\ProcessHelper;
 use UnexpectedValueException;
 
 /**
@@ -487,7 +487,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
             return [];
         }
 
-        $result = ProcessRunner::run([$this->isWindows ? 'where' : 'which', $command], self::LOOKUP_TIMEOUT);
+        $result = ProcessHelper::run([$this->isWindows ? 'where' : 'which', $command], self::LOOKUP_TIMEOUT);
         if ($result === null || $result['exitCode'] !== 0) {
             return [];
         }
@@ -575,7 +575,7 @@ class ExecutableConfigType extends ConfigTypeAbstract {
      * laufen which/where ohne Shell.
      */
     protected function canUseProcOpen(): bool {
-        return ProcessRunner::canStartProcesses();
+        return ProcessHelper::canStartProcesses();
     }
 
     /**
