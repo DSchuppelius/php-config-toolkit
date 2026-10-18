@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
-            "version": "v2.8.1",
+            "version": "v2.8.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DSchuppelius/php-error-toolkit.git",
-                "reference": "148eece946d9d327c14dd604489da46d275d9034"
+                "reference": "07b700b9ffaa847264ac2b78f133ba8e206d5c7d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/148eece946d9d327c14dd604489da46d275d9034",
-                "reference": "148eece946d9d327c14dd604489da46d275d9034",
+                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/07b700b9ffaa847264ac2b78f133ba8e206d5c7d",
+                "reference": "07b700b9ffaa847264ac2b78f133ba8e206d5c7d",
                 "shasum": ""
             },
             "require": {
@@ -66,7 +66,7 @@
                 "issues": "https://github.com/DSchuppelius/php-error-toolkit/issues",
                 "source": "https://github.com/DSchuppelius/php-error-toolkit"
             },
-            "time": "2026-10-14T07:25:17+00:00"
+            "time": "2026-10-18T11:01:57+00:00"
         },
         {
             "name": "psr/log",
@@ -2033,5 +2033,5 @@
     "platform-overrides": {
         "php": "8.2.0"
     },
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
