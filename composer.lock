@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
-            "version": "v2.8.3",
+            "version": "v2.8.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DSchuppelius/php-error-toolkit.git",
-                "reference": "07b700b9ffaa847264ac2b78f133ba8e206d5c7d"
+                "reference": "5becdfe209512beca0f2f912173fbef8b56ad3ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/07b700b9ffaa847264ac2b78f133ba8e206d5c7d",
-                "reference": "07b700b9ffaa847264ac2b78f133ba8e206d5c7d",
+                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/5becdfe209512beca0f2f912173fbef8b56ad3ee",
+                "reference": "5becdfe209512beca0f2f912173fbef8b56ad3ee",
                 "shasum": ""
             },
             "require": {
@@ -66,7 +66,7 @@
                 "issues": "https://github.com/DSchuppelius/php-error-toolkit/issues",
                 "source": "https://github.com/DSchuppelius/php-error-toolkit"
             },
-            "time": "2026-10-18T11:01:57+00:00"
+            "time": "2026-10-22T20:53:00+00:00"
         },
         {
             "name": "psr/log",
