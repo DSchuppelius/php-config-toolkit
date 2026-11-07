@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "dschuppelius/php-error-toolkit",
-            "version": "v2.8.4",
+            "version": "v2.8.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DSchuppelius/php-error-toolkit.git",
-                "reference": "5becdfe209512beca0f2f912173fbef8b56ad3ee"
+                "reference": "f46937288424f4fbe4a934d356e6017d864c8d90"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/5becdfe209512beca0f2f912173fbef8b56ad3ee",
-                "reference": "5becdfe209512beca0f2f912173fbef8b56ad3ee",
+                "url": "https://api.github.com/repos/DSchuppelius/php-error-toolkit/zipball/f46937288424f4fbe4a934d356e6017d864c8d90",
+                "reference": "f46937288424f4fbe4a934d356e6017d864c8d90",
                 "shasum": ""
             },
             "require": {
@@ -66,7 +66,7 @@
                 "issues": "https://github.com/DSchuppelius/php-error-toolkit/issues",
                 "source": "https://github.com/DSchuppelius/php-error-toolkit"
             },
-            "time": "2026-10-22T20:53:00+00:00"
+            "time": "2026-11-07T21:40:34+00:00"
         },
         {
             "name": "psr/log",
@@ -427,11 +427,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.3.1",
+            "version": "2.3.5",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/6155239b488e95d26d1ebd95c6b4bb294d7f09db",
-                "reference": "6155239b488e95d26d1ebd95c6b4bb294d7f09db",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/645a1bd6bead15fc1b8474137467961d0fa30a79",
+                "reference": "645a1bd6bead15fc1b8474137467961d0fa30a79",
                 "shasum": ""
             },
             "require": {
@@ -487,7 +487,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-08T21:09:11+00:00"
+            "time": "2026-11-03T12:14:22+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
